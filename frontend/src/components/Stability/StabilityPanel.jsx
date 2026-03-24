@@ -38,7 +38,7 @@ export default function StabilityPanel({ history, current }) {
   const trendColor = trend > 0.02 ? '#10b981' : trend < -0.02 ? '#ef4444' : '#64748b';
 
   const lastComponents = history.length
-    ? history[history.length - 1].components : {};
+    ? (history[history.length - 1]?.components || {}) : {};
 
   return (
     <div style={{
@@ -68,12 +68,12 @@ export default function StabilityPanel({ history, current }) {
       </div>
 
       {/* Component breakdown */}
-      {lastComponents.contradiction != null && (
+      {(lastComponents?.contradiction != null) && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 2, flexShrink: 0 }}>
           {[
-            ['c', lastComponents.contradiction, '#ef4444'],
-            ['u', lastComponents.uncertainty,   '#f59e0b'],
-            ['d', lastComponents.drift,          '#3b82f6'],
+            ['c', lastComponents?.contradiction, '#ef4444'],
+            ['u', lastComponents?.uncertainty,   '#f59e0b'],
+            ['d', lastComponents?.drift,          '#3b82f6'],
           ].map(([k, v, c]) => v != null ? (
             <div key={k} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
               <span style={{ fontSize: 8, color: '#334155', fontFamily: 'Space Mono', width: 8 }}>{k}</span>
