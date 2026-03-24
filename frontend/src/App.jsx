@@ -89,7 +89,7 @@ export default function App() {
       <style>{css}</style>
       <div style={{ display: 'grid', gridTemplateRows: '48px 1fr 72px', height: '100vh', overflow: 'hidden' }}>
 
-        <Header stability={state.currentStability} runtime={state.runtime} status={state.status} />
+        <Header stability={state.currentStability} runtime={state.runtime} status={state.status} onViewBrief={() => setShowBrief(true)} />
 
         <div style={{ display: 'grid', gridTemplateColumns: '272px 1fr 280px', overflow: 'hidden', minHeight: 0 }}>
 
@@ -173,6 +173,8 @@ export default function App() {
   );
 }
 // thinking-animations-v2
+
+
 
 
 
