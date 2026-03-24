@@ -147,10 +147,10 @@ export default function GraphPanel({ graph, isRunning }) {
         if (allOut) stateRef.current = "thinking";
       }
 
-      // Thinking: slowly ease inward
+      // Thinking: ease inward — fast enough to visibly notice after burst
       if (state === "thinking") {
         nodeRadii.current.forEach(n => {
-          n.current += (thinkR - n.current) * 0.012;
+          n.current += (thinkR - n.current) * 0.035;
         });
       }
 
