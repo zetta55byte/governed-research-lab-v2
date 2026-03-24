@@ -160,7 +160,7 @@ export default function App() {
                 <span style={{ fontSize: 10, color: '#64748b', fontFamily: 'Space Mono' }}>
                   {state.continuityChain.length} deltas · {state.membraneLog.length} checks · S(t) = {state.currentStability.toFixed(3)}
                 </span>
-                <button onClick={() => setShowBrief(false)} onMouseEnter={e => { e.currentTarget.style.background = '#1e2d45'; e.currentTarget.style.borderColor = '#3b82f6'; e.currentTarget.style.color = '#93c5fd'; }} onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = '#334155'; e.currentTarget.style.color = '#94a3b8'; }} style={{ background: 'transparent', border: '1px solid #334155', borderRadius: 6, padding: '7px 16px', color: '#94a3b8', fontFamily: 'Space Mono', fontSize: 11, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, letterSpacing: 1, transition: 'all 0.15s ease' }}><span style={{ fontSize: 13, lineHeight: 1 }}>?</span> Dashboard</button>
+                
               </div>
             </div>
             <div style={{ flex: 1, overflowY: 'auto', fontSize: 13, lineHeight: 1.9, color: '#e2e8f0', whiteSpace: 'pre-wrap', background: '#131929', borderRadius: 6, padding: 20 }}>
@@ -173,6 +173,7 @@ export default function App() {
   );
 }
 // thinking-animations-v2
+
 
 
 
