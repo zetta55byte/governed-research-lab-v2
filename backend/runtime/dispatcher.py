@@ -121,7 +121,8 @@ async def call_llm(prompt: str, api_key: str = "", model: str = "claude") -> str
                 )
                 if resp.status_code == 200:
                     return resp.json()["content"][0]["text"]
-        except Exception as exc:`n            print(f"[GRL] Anthropic error: {exc}", flush=True)
+        except Exception:
+            pass
 
     if openai_key and model in ("openai",):
         try:
@@ -137,7 +138,8 @@ async def call_llm(prompt: str, api_key: str = "", model: str = "claude") -> str
                 )
                 if resp.status_code == 200:
                     return resp.json()["choices"][0]["message"]["content"]
-        except Exception as exc:`n            print(f"[GRL] Anthropic error: {exc}", flush=True)
+        except Exception:
+            pass
 
     # Structured mock
     await asyncio.sleep(0.6)
@@ -340,4 +342,3 @@ def get_runtime(runtime: str, session_id: str, query: str, profile: str, api_key
     }
     cls = runtimes.get(runtime, AnthropicRuntime)
     return cls(session_id=session_id, query=query, profile=profile, api_key=api_key)
-
