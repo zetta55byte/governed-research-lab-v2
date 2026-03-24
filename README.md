@@ -8,109 +8,129 @@ The second generation of the Constitutional OS flagship reference implementation
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
+**[Live Demo](https://governed-research-lab-v2.up.railway.app)** — run a governed research cycle in your browser. Watch membranes check, deltas commit, and the Lyapunov curve update in real time.
+
 ---
 
-## What changed from v1
+## Why v2 exists
 
 GRL v1 proved the substrate works. GRL v2 makes it *visible*.
 
+The shift is ontological, not cosmetic.
+
+**v1: logs.** Agent actions were recorded as trace entries. You could read what happened, but you could not reason about it formally. The continuity chain was a history.
+
+**v2: institution.** Every agent action is a proposed delta — a typed, reversible state transition with a forward operation and an inverse. The system maintains a trajectory:
+
+    State(0) -> State(1) -> State(2) -> ... -> State(N)
+    State(t+1) = State(t) + Delta(t)
+
+This changes everything downstream:
+
 | v1 | v2 |
 |----|-----|
-| Deltas as log entries | Deltas as first-class reversible state transitions |
-| Single continuity chain | Multi-agent chain with `observers` + `contested_by` |
-| Lyapunov as a number | Lyapunov as a live curve: V(t) = α·c(t) + β·u(t) + γ·d(t) |
+| Deltas as log entries | Deltas as reversible state transitions |
+| Single continuity chain | Multi-agent chain with observers + contested_by |
+| Governance checks | Membrane negotiation across agents |
+| Lyapunov as a number | V(t) = a*c(t) + b*u(t) + g*d(t), computed after every delta |
 | One runtime (LangChain) | Runtime selector: Claude / OpenAI / AutoGen |
-| Static graph | D3 force graph with membrane-colored edges |
+| Static graph | D3 force graph, membrane-colored edges, live |
 | Basic log stream | Filterable continuity chain viewer |
-| Single profile | Profile-tunable constitutions (AI Safety, Evals, Governance, Planning) |
+| Single profile | Profile-tunable constitutions |
+
+The key insight: the continuity chain is not a log of what agents thought. It is the formal state of a governed institution. You can roll it back. You can filter it by agent, membrane outcome, or conflict. You can watch it destabilize and recover. Governance is not bolted on. It is the substrate.
 
 ---
 
-## The architecture
+## Architecture
 
 ```
-Query → Planner → [Researcher ×3] → Critic → Synthesizer → Human
-          │              │               │           │
-          └──────────────┴───────────────┴───────────┘
-                                 │
-                    Constitutional OS (M1–M4)
-                                 │
-              ┌──────────────────┼──────────────────┐
-              │                  │                  │
-         Membrane           Continuity          Lyapunov
-         Evaluation           Chain             V(t) → S(t)
-         M1·M2·M3·M4      [Δ1→Δ2→…→ΔN]       1 − V(t)
-              │                  │                  │
-              └──────────────────┴──────────────────┘
-                                 │
-                          SSE Event Bus
-                                 │
-                         React Frontend
-                    ┌────────────────────────┐
-                    │  D3 Agent Graph        │
-                    │  Membrane Log          │
-                    │  Continuity Viewer     │
-                    │  Stability Curve       │
-                    └────────────────────────┘
+                         Query
+                           |
+                           v
+                       +---------+
+                       | Planner |
+                       +----+----+
+                            |
+            +---------------+---------------+
+            v               v               v
+     +-----------+   +-----------+   +-----------+
+     |Researcher1|   |Researcher2|   |Researcher3|
+     +-----+-----+   +-----+-----+   +-----+-----+
+           +---------------+---------------+
+                           |
+                           v
+                       +--------+
+                       | Critic |  <- flags contradictions,
+                       +---+----+     contests researcher deltas
+                           |
+                           v
+                   +-------------+
+                   | Synthesizer |
+                   +------+------+
+                          |
+                          v
+                       Human
+                          |
+             +------------+------------+
+             v                        v
+   Constitutional OS            Continuity Chain
+   Membrane Engine              [D1 -> D2 -> ... -> DN]
+   M1 * M2 * M3 * M4            observers + contested_by
+             |                        |
+             +------------+-----------+
+                          v
+                  Lyapunov Engine
+                  V(t) = a*c(t) + b*u(t) + g*d(t)
+                  S(t) = 1 - V(t)
+                          |
+                     SSE Event Bus
+                          |
+                   React Frontend
+         +----------------------------------+
+         | D3 Agent Graph                   |
+         | Membrane Log (live stream)       |
+         | Continuity Chain Viewer          |
+         |   filter by agent                |
+         |   filter by membrane             |
+         |   filter by contested            |
+         | Lyapunov Stability Curve         |
+         +----------------------------------+
 ```
 
 ---
 
-## The five panels
+## Lyapunov potential
 
-```
-┌──────────────────────────────────────────────────────────────────┐
-│  Query · Profile · Runtime Selector · [Run Governed Cycle]       │
-│  Agent Pipeline · Stats · Chain Filters                          │
-├────────────────────────┬─────────────────────┬───────────────────┤
-│  Control Panel         │  D3 Agent Graph      │  Membrane Log     │
-│  (left)                │  (center)            │  M1·M2·M3·M4     │
-│                        │  Nodes = agents      │  live stream      │
-│                        │  Edges = governed    ├───────────────────┤
-│                        │  interactions        │  Continuity Chain │
-│                        │  Colors = membrane   │  Viewer           │
-│                        │  outcomes            │  filterable       │
-│                        │                      │  by agent/        │
-│                        │                      │  membrane/        │
-│                        │                      │  contested        │
-├────────────────────────┴─────────────────────┴───────────────────┤
-│  V(t) = α·c + β·u + γ·d   S(t) = {score}   [Lyapunov Curve]     │
-└──────────────────────────────────────────────────────────────────┘
-```
-
----
-
-## The Lyapunov potential
-
-After every committed delta, the system recomputes:
+After every committed delta:
 
 ```
 c(t) = contradiction level  (fraction of conflicting claims)
 u(t) = uncertainty level    (fraction of low-confidence claims)
 d(t) = drift from query     (cosine distance from original query)
 
-V(t) = α·c(t) + β·u(t) + γ·d(t)
-S(t) = 1 − V(t)
+V(t) = a*c(t) + b*u(t) + g*d(t)
+S(t) = 1 - V(t)
 ```
 
-`S(t) ≈ 1.0` → agents aligned, low contradiction, low drift
-`S(t) ≈ 0.0` → agents fighting, confused, or off-topic
+S(t) near 1.0 means agents are aligned, low contradiction, low drift.
+S(t) near 0.0 means agents are fighting, confused, or off-topic.
 
-Emitted as `stability_update` SSE event after every delta.
+Tuned per profile. Emitted as stability_update SSE event after every delta.
 
 ---
 
 ## SSE event contract
 
-All six event types. The frontend never needs to know which runtime is running.
+Six event types. The frontend never needs to know which runtime is running.
 
 ```json
-{ "type": "agent_update",    "agent_id": "...", "status": "...", "message": "..." }
-{ "type": "membrane_check",  "membrane": "M1_SAFETY", "result": "allow|block|defer" }
+{ "type": "agent_update",    "agent_id": "...", "status": "running" }
+{ "type": "membrane_check",  "membrane": "M1_SAFETY", "result": "allow" }
 { "type": "graph_update",    "nodes": [...], "links": [...] }
-{ "type": "delta_committed", "delta": { "delta_id": "...", "forward": [...], "inverse": [...] } }
-{ "type": "stability_update","score": 0.87, "components": { "contradiction": 0.1, ... } }
-{ "type": "final_output",    "brief": "...", "continuity_chain": [...], "stability_curve": [...] }
+{ "type": "delta_committed", "delta": { "forward": [...], "inverse": [...] } }
+{ "type": "stability_update","score": 0.87, "components": { "contradiction": 0.1 } }
+{ "type": "final_output",    "brief": "...", "stability_curve": [...] }
 ```
 
 ---
@@ -124,31 +144,7 @@ if runtime == "openai":   use OpenAIRuntime
 if runtime == "autogen":  use AutoGenRuntime
 ```
 
-All runtimes implement the same `GovernedRuntime.run_cycle()` interface.
-All emit identical SSE events.
-Same UI. Same governance. Different model underneath.
-
----
-
-## Continuity chain (v2)
-
-Every delta now includes:
-
-```json
-{
-  "delta_id": "Δ42",
-  "agent_id": "researcher_2",
-  "forward":  [{ "op": "add", "path": "/claims/3", "value": "..." }],
-  "inverse":  [{ "op": "remove", "path": "/claims/3" }],
-  "membrane_results": { "M1_SAFETY": "allow", "M2_REVERSIBILITY": "allow", ... },
-  "verdict": "allow",
-  "observers": ["critic", "researcher_1"],
-  "contested_by": ["critic"],
-  "stability_after": 0.76
-}
-```
-
-`State(t+1) = State(t) ⊕ Delta(t)` — the chain is the full trajectory.
+All runtimes implement GovernedRuntime.run_cycle(). Same SSE events. Same UI. Same governance. Different model.
 
 ---
 
@@ -157,70 +153,37 @@ Every delta now includes:
 ```bash
 git clone https://github.com/zetta55byte/governed-research-lab-v2
 cd governed-research-lab-v2
-
-# Optional — works without keys (structured mock responses)
-export ANTHROPIC_API_KEY=sk-ant-...
+export ANTHROPIC_API_KEY=sk-ant-...   # optional, falls back to mock
 ```
 
-**Backend**
 ```bash
-cd backend
-pip install -r requirements.txt
+cd backend && pip install -r requirements.txt
 uvicorn main:app --reload --port 8000
 ```
 
-**Frontend**
 ```bash
-cd frontend
-npm install && npm start
-# → http://localhost:3000
-```
-
-**Docker**
-```bash
-docker-compose up --build
-```
-
----
-
-## API
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `POST` | `/run` | Start a governed research cycle |
-| `GET`  | `/stream/{id}` | SSE live event stream |
-| `GET`  | `/session/{id}` | Session status + summary |
-| `GET`  | `/session/{id}/chain` | Full continuity chain + stability curve |
-| `GET`  | `/session/{id}/graph` | D3 graph (nodes + links) |
-| `GET`  | `/health` | System health |
-
-```bash
-curl -X POST http://localhost:8000/run \
-  -H "Content-Type: application/json" \
-  -d '{"query": "Constitutional AI safety", "profile": "ai_safety", "runtime": "claude"}'
+cd frontend && npm install && npm start
 ```
 
 ---
 
 ## Research profiles
 
-| Profile | M1 weight | M2 weight | M3 weight | M4 weight |
-|---------|-----------|-----------|-----------|-----------|
-| `ai_safety` | 0.6 | 0.2 | 0.1 | 0.1 |
-| `evals` | 0.3 | 0.3 | 0.3 | 0.1 |
-| `governance` | 0.4 | 0.3 | 0.2 | 0.1 |
-| `planning` | 0.3 | 0.5 | 0.1 | 0.1 |
-
-Each profile tunes the Lyapunov weights (α, β, γ) and membrane enforcement accordingly.
+| Profile | a (contradiction) | b (uncertainty) | g (drift) |
+|---------|-------------------|-----------------|-----------|
+| ai_safety | 0.5 | 0.3 | 0.2 |
+| evals | 0.3 | 0.4 | 0.3 |
+| governance | 0.4 | 0.3 | 0.3 |
+| planning | 0.3 | 0.3 | 0.4 |
 
 ---
 
 ## Related
 
-- [governed-research-lab](https://github.com/zetta55byte/governed-research-lab) — v1, stable reference
-- [constitutional-os](https://github.com/zetta55byte/constitutional-os) — core substrate
-- [constitutional-os-langchain](https://github.com/zetta55byte/constitutional-os-langchain) — SDK + integrations
-- [Paper](https://zenodo.org/records/19075163) — formal proofs, DOI: 10.5281/zenodo.19075163
+- [governed-research-lab](https://github.com/zetta55byte/governed-research-lab) -- v1, stable reference
+- [constitutional-os](https://github.com/zetta55byte/constitutional-os) -- core substrate
+- [constitutional-os-langchain](https://github.com/zetta55byte/constitutional-os-langchain) -- SDK + integrations
+- [Paper](https://zenodo.org/records/19075163) -- DOI: 10.5281/zenodo.19075163
 
 ---
 
