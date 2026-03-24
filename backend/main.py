@@ -1,7 +1,6 @@
 """
 grl_v2 FastAPI backend
 
-
 Endpoints:
   POST /run              — start a governed research cycle
   GET  /stream/{id}      — SSE event stream
@@ -10,24 +9,19 @@ Endpoints:
   GET  /health           — health + stability
 """
 
-
 import asyncio
 import time
 import uuid
-
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
-
 from runtime.dispatcher import get_runtime, GovernedRuntime
 from core.event_bus import registry
 
-
 app = FastAPI(title="Governed Research Lab v2", version="2.0.0")
-
 
 app.add_middleware(
     CORSMiddleware,
@@ -36,28 +30,140 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
 # ─── Session store ─────────────────────────────────────────────────────────────
-
 
 sessions: dict[str, dict] = {}
 
 
+# ─── Request models ────────────────────────────────────────────────────────────
 
-@app.get("/test-llm")
-async def test_llm():
-    import os, httpx
-    key = os.getenv("ANTHROPIC_API_KEY", "")
-    if not key:
-        return {"error": "no key", "key_len": 0}
+class RunRequest(BaseModel):
+    query: str
+    profile: str = "governance"      # ai_safety | evals | governance | planning | custom
+    runtime: str = "claude"          # claude | openai | autogen
+    api_key: str = ""
+
+
+# ─── Routes ────────────────────────────────────────────────────────────────────
+
+@app.post("/run")
+async def run_research(req: RunRequest):
+    session_id = str(uuid.uuid4())
+
+    runtime: GovernedRuntime = get_runtime(
+        runtime=req.runtime,
+        session_id=session_id,
+        query=req.query,
+        profile=req.profile,
+        api_key=req.api_key,
+    )
+
+    # Register the bus
+    registry._buses[session_id] = runtime.bus
+
+    sessions[session_id] = {
+        "session_id": session_id,
+        "query": req.query,
+        "profile": req.profile,
+        "runtime": req.runtime,
+        "status": "running",
+        "created_at": time.time(),
+        "runtime_obj": runtime,
+    }
+
+    # Run pipeline in background
+    asyncio.create_task(_run_pipeline(session_id, runtime))
+
+    return {
+        "session_id": session_id,
+        "query": req.query,
+        "profile": req.profile,
+        "runtime": req.runtime,
+        "status": "running",
+    }
+
+
+async def _run_pipeline(session_id: str, runtime: GovernedRuntime):
     try:
-        async with httpx.AsyncClient(timeout=15) as client:
-            resp = await client.post(
-                "https://api.anthropic.com/v1/messages",
-                headers={"x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json"},
-                json={"model": "claude-sonnet-4-5", "max_tokens": 50, "messages": [{"role": "user", "content": "say hi"}]},
-            )
-            return {"status": resp.status_code, "key_prefix": key[:12], "body": resp.text[:300]}
+        result = await runtime.run_cycle()
+        if session_id in sessions:
+            sessions[session_id]["status"] = "complete"
+            sessions[session_id]["result"] = result
     except Exception as exc:
-        return {"error": str(exc), "key_prefix": key[:12]}
+        if session_id in sessions:
+            sessions[session_id]["status"] = "error"
+            sessions[session_id]["error"] = str(exc)
+        await runtime.bus.emit_raw({"type": "error", "message": str(exc)})
+        await runtime.bus.emit_raw({"type": "stream_end"})
 
+
+@app.get("/stream/{session_id}")
+async def stream_events(session_id: str):
+    bus = registry.get(session_id)
+    if not bus:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    return StreamingResponse(
+        bus.stream(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+        },
+    )
+
+
+@app.get("/session/{session_id}")
+async def get_session(session_id: str):
+    s = sessions.get(session_id)
+    if not s:
+        raise HTTPException(status_code=404, detail="Session not found")
+    runtime: GovernedRuntime = s.get("runtime_obj")
+    return {
+        "session_id": session_id,
+        "query": s["query"],
+        "profile": s["profile"],
+        "runtime": s["runtime"],
+        "status": s["status"],
+        "stability_score": runtime.stability.current_score() if runtime else 1.0,
+        "chain_summary": runtime.chain.summary() if runtime else {},
+    }
+
+
+@app.get("/session/{session_id}/chain")
+async def get_chain(session_id: str):
+    s = sessions.get(session_id)
+    if not s:
+        raise HTTPException(status_code=404, detail="Session not found")
+    runtime: GovernedRuntime = s.get("runtime_obj")
+    if not runtime:
+        return {"chain": [], "summary": {}}
+    return {
+        "chain": runtime.chain.to_list(),
+        "summary": runtime.chain.summary(),
+        "stability_curve": runtime.stability.stability_curve(),
+    }
+
+
+@app.get("/session/{session_id}/graph")
+async def get_graph(session_id: str):
+    s = sessions.get(session_id)
+    if not s:
+        raise HTTPException(status_code=404, detail="Session not found")
+    runtime: GovernedRuntime = s.get("runtime_obj")
+    if not runtime:
+        return {"nodes": [], "links": []}
+    return {
+        "nodes": [n.to_dict() for n in runtime.graph_nodes],
+        "links": [l.to_dict() for l in runtime.graph_links],
+    }
+
+
+@app.get("/health")
+async def health():
+    return {
+        "status": "ok",
+        "version": "2.0.0",
+        "active_sessions": len(sessions),
+        "constitutional_os_api": "https://constitutional-os-production.up.railway.app",
+    }
