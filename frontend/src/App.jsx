@@ -48,7 +48,7 @@ const css = `
   right: 0;
   height: 1px;
   background: linear-gradient(90deg, transparent 0%, #3b82f6 30%, #10b981 50%, #a855f7 70%, transparent 100%);
-  animation: scanDown 1.8s infinite linear;
+  animation: scanDown 7s infinite linear;
   pointer-events: none;
   z-index: 200;
 }
@@ -61,7 +61,7 @@ const css = `
 .left-panel-thinking {
   background: linear-gradient(90deg, transparent 0%, rgba(59,130,246,0.04) 40%, rgba(16,185,129,0.06) 50%, rgba(59,130,246,0.04) 60%, transparent 100%);
   background-size: 400px 100%;
-  animation: leftShimmer 2s infinite linear;
+  animation: leftShimmer 4s infinite linear;
   pointer-events: none;
 }
 * { box-sizing: border-box; }
@@ -265,5 +265,6 @@ export default function App() {
   );
 }
 // thinking-animations-v3
+
 
 
