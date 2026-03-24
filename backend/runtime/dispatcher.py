@@ -5,7 +5,7 @@ Runtime selector dispatch.
 
 The UI never talks to the model.
 The UI talks to the GRL backend.
-The backend swaps runtimes.
+The backend swaps runtimes.h
 
 All runtimes implement GovernedRuntime and emit the same SSE events.
 This is what proves: governance is invariant across runtimes.
@@ -121,7 +121,7 @@ async def call_llm(prompt: str, api_key: str = "", model: str = "claude") -> str
                 )
                 if resp.status_code == 200:
                     return resp.json()["content"][0]["text"]
-        except Exception:
+except Exception:
             pass
 
     if openai_key and model in ("openai",):
@@ -130,7 +130,7 @@ async def call_llm(prompt: str, api_key: str = "", model: str = "claude") -> str
                 resp = await client.post(
                     "https://api.openai.com/v1/chat/completions",
                     headers={"Authorization": f"Bearer {openai_key}"},
-                    json={
+                                print(f"[GRL] Anthropic error: {exc}", flush=True)
                         "model": "gpt-4o-mini",
                         "messages": [{"role": "user", "content": prompt}],
                         "max_tokens": 1024,
