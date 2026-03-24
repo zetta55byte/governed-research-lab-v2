@@ -1,10 +1,16 @@
 # governed-research-lab-v2
 
 
+
+
 > A new ontology. Not a UI upgrade.
 
 
+
+
 The second generation of the Constitutional OS flagship reference implementation.
+
+
 
 
 [![Constitutional OS](https://img.shields.io/badge/governed%20by-Constitutional%20OS-blueviolet)](https://github.com/zetta55byte/constitutional-os)
@@ -12,32 +18,52 @@ The second generation of the Constitutional OS flagship reference implementation
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 
-**[Live Demo](https://governed-research-lab-v2-production.up.railway.app)** — run a governed research cycle in your browser. Watch membranes check, deltas commit, and the Lyapunov curve update in real time.
+
+
+**[Live Demo](https://governed-research-lab-v2.vercel.app)** — run a governed research cycle in your browser. Watch membranes check, deltas commit, and the Lyapunov curve update in real time.
+
+
 
 
 ---
 
 
+
+
 ## Why v2 exists
+
+
 
 
 GRL v1 proved the substrate works. GRL v2 makes it *visible*.
 
 
+
+
 The shift is ontological, not cosmetic.
+
+
 
 
 **v1: logs.** Agent actions were recorded as trace entries. You could read what happened, but you could not reason about it formally. The continuity chain was a history.
 
 
+
+
 **v2: institution.** Every agent action is a proposed delta — a typed, reversible state transition with a forward operation and an inverse. The system maintains a trajectory:
+
+
 
 
     State(0) -> State(1) -> State(2) -> ... -> State(N)
     State(t+1) = State(t) + Delta(t)
 
 
+
+
 This changes everything downstream:
+
+
 
 
 | v1 | v2 |
@@ -52,31 +78,6 @@ This changes everything downstream:
 | Single profile | Profile-tunable constitutions |
 
 
+
+
 The key insight: the continuity chain is not a log of what agents thought. It is the formal state of a governed institution. You can roll it back. You can filter it by agent, membrane outcome, or conflict. You can watch it destabilize and recover. Governance is not bolted on. It is the substrate.
-
-
----
-
-
-## Architecture
-
-
-```
-                         Query
-                           |
-                           v
-                       +---------+
-                       | Planner |
-                       +----+----+
-                            |
-            +---------------+---------------+
-            v               v               v
-     +-----------+   +-----------+   +-----------+
-     |Researcher1|   |Researcher2|   |Researcher3|
-     +-----+-----+   +-----+-----+   +-----+-----+
-           +---------------+---------------+
-                           |
-                           v
-                       +--------+
-                       | Critic |  <- flags contradictions,
-                       +---+----+     contests researcher deltas
