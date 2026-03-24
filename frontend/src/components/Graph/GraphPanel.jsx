@@ -75,10 +75,12 @@ export default function GraphPanel({ graph, isRunning }) {
             };
           }),
         };
-        // Push nodes back out to idle radius so they drift in again
+        // Snap nodes back out beyond idle so drift inward is clearly visible
         if (nodeRadii.current) {
-          nodeRadii.current.forEach(n => { n.current = n.idle; });
+          nodeRadii.current.forEach(n => { n.current = n.idle * 1.25; });
         }
+        // Force state back to thinking so the inward ease runs
+        stateRef.current = "thinking";
       }
     }
     prevLinkCount.current = linkCount;
@@ -127,6 +129,7 @@ export default function GraphPanel({ graph, isRunning }) {
       ctx.clearRect(0, 0, W, H);
       t++;
 
+      // Always read fresh from ref — no stale closures
       const state = stateRef.current;
 
       if (state === "done") {
@@ -135,26 +138,26 @@ export default function GraphPanel({ graph, isRunning }) {
       }
 
       // Advance global orbit angle
-      const speed = state === "thinking" ? ORBIT_SPEED * 1.8 : ORBIT_SPEED;
-      orbitAngle.current += speed;
+      orbitAngle.current += state === "thinking" ? ORBIT_SPEED * 1.8 : ORBIT_SPEED;
 
-      // Burst-out: quickly push radii out past idle, then switch to thinking
+      // Burst-out: push radii out past idle, then flip to thinking
       if (state === "burst-out") {
         nodeRadii.current.forEach(n => {
           n.current += (idleR * 1.25 - n.current) * 0.08;
         });
-        const allOut = nodeRadii.current.every(n => n.current >= idleR * 1.18);
-        if (allOut) stateRef.current = "thinking";
+        if (nodeRadii.current.every(n => n.current >= idleR * 1.18)) {
+          stateRef.current = "thinking";
+        }
       }
 
-      // Thinking: ease inward — fast enough to visibly notice after burst
-      if (state === "thinking") {
+      // Thinking: ease inward clearly — 0.05 = visibly rolls in within ~1s
+      if (stateRef.current === "thinking") {
         nodeRadii.current.forEach(n => {
-          n.current += (thinkR - n.current) * 0.035;
+          n.current += (thinkR - n.current) * 0.05;
         });
       }
 
-      // Idle: maintain idle radius
+      // Idle: drift back out
       if (state === "idle") {
         nodeRadii.current.forEach(n => {
           n.current += (idleR - n.current) * 0.03;
