@@ -1,54 +1,69 @@
 import React, { useRef, useEffect } from "react";
 import { useGraph } from "../../hooks/useGraph";
 
+// Idle: all same radius perfect circle
+// On run: each flies to its own far position independently
 const RING_NODES = [
-  { label: "Human",        color: "#f59e0b", size: 10, angle: 0,                  farR: 0.82, speed: 0.0004  },
-  { label: "Researcher #1",color: "#10b981", size: 9,  angle: Math.PI * 0.333,    farR: 0.78, speed: 0.00035 },
-  { label: "Researcher #2",color: "#10b981", size: 9,  angle: Math.PI * 0.666,    farR: 0.85, speed: 0.00045 },
-  { label: "Researcher #3",color: "#10b981", size: 9,  angle: Math.PI * 1.0,      farR: 0.75, speed: 0.0003  },
-  { label: "Critic",       color: "#f97316", size: 10, angle: Math.PI * 1.333,    farR: 0.80, speed: 0.00038 },
-  { label: "Planner",      color: "#3b82f6", size: 10, angle: Math.PI * 1.666,    farR: 0.72, speed: 0.00042 },
+  { label: "Human",        color: "#f59e0b", size: 10, angle: 0,             farR: 0.80, farAngle: Math.PI * 0.05  },
+  { label: "Researcher #1",color: "#10b981", size: 9,  angle: Math.PI*0.333, farR: 0.75, farAngle: Math.PI * 0.42  },
+  { label: "Researcher #2",color: "#10b981", size: 9,  angle: Math.PI*0.666, farR: 0.82, farAngle: Math.PI * 1.78  },
+  { label: "Researcher #3",color: "#10b981", size: 9,  angle: Math.PI*1.0,   farR: 0.72, farAngle: Math.PI * 1.28  },
+  { label: "Critic",       color: "#f97316", size: 10, angle: Math.PI*1.333, farR: 0.78, farAngle: Math.PI * 0.82  },
+  { label: "Planner",      color: "#3b82f6", size: 10, angle: Math.PI*1.666, farR: 0.68, farAngle: Math.PI * 1.58  },
 ];
 
-const CENTER_NODE  = { color: "#a855f7", size: 14 };
-const IDLE_R       = 0.38;
-const ORBIT_SPEED  = 0.0005;
+const CENTER_NODE = { color: "#a855f7", size: 14 };
+const IDLE_R      = 0.36;
+const ORBIT_SPEED = 0.0005;
 
 const AMBIENT_WORDS = [
-  "M1","M2","M3","M4","δ","S(t)","α","β","γ",
-  "continuity","membrane","governed","attractor",
-  "entropy","stability","planner","critic","synthesizer",
-  "constitutional","delta","chain","ridge","substrate",
-  "feedback","allow","defer","block","∇","∑","⊕","◈",
+  "M1","M2","M3","M4","δ","S(t)","α","β","γ","λ",
+  "continuity","membrane","governed","attractor","∇","∑","∫","∂",
+  "entropy","stability","substrate","feedback","allow","defer","◈","⊕",
+  "constitutional","delta","chain","ridge","critic","synthesizer","Δ","∞",
 ];
 
 export default function GraphPanel({ graph, isRunning }) {
-  const containerRef  = useRef(null);
-  const svgRef        = useRef(null);
-  const canvasRef     = useRef(null);
-  const animRef       = useRef(null);
-  const nodesRef      = useRef(null);
-  const ambientRef    = useRef(null);
-  const stateRef      = useRef("idle");
-  const globalAngle   = useRef(0);
-  const awaitAlpha    = useRef(1);
-  const researchAlpha = useRef(0);
-  const textPhase     = useRef(0);
+  const containerRef = useRef(null);
+  const svgRef       = useRef(null);
+  const canvasRef    = useRef(null);
+  const animRef      = useRef(null);
+  const nodesRef     = useRef(null);
+  const ambientRef   = useRef(null);
+  const phaseRef     = useRef("idle"); // idle | dispersed | done
+  const globalAngle  = useRef(0);
+  const awaitAlpha   = useRef(1);
+  const resAlpha     = useRef(0);
+  const doneAlpha    = useRef(0);
+  const textPhase    = useRef(0);
+  const prevRunning  = useRef(false);
 
   const hasGraph = graph?.nodes?.length > 0;
   useGraph(svgRef, graph);
 
+  // Update phase based on props
   useEffect(() => {
-    if (isRunning && stateRef.current === "idle") stateRef.current = "scatter";
+    // Just became running
+    if (isRunning && !prevRunning.current) {
+      phaseRef.current = "dispersed";
+    }
+    prevRunning.current = isRunning;
+
+    // Reset on new query
     if (!isRunning && !hasGraph) {
-      stateRef.current = "idle";
-      nodesRef.current = null;
+      phaseRef.current   = "idle";
+      nodesRef.current   = null;
       ambientRef.current = null;
       awaitAlpha.current = 1;
-      researchAlpha.current = 0;
+      resAlpha.current   = 0;
+      doneAlpha.current  = 0;
       globalAngle.current = 0;
     }
-    if (hasGraph) stateRef.current = "done";
+
+    // Graph arrived
+    if (hasGraph) {
+      phaseRef.current = "done";
+    }
   }, [isRunning, hasGraph]);
 
   useEffect(() => {
@@ -70,29 +85,30 @@ export default function GraphPanel({ graph, isRunning }) {
     let t = 0;
 
     function draw() {
+      // Init nodes
       if (!nodesRef.current) {
         nodesRef.current = RING_NODES.map(n => ({
           ...n,
-          phase:    n.angle,
-          currentR: idleR,
+          // Start on perfect circle
+          currentX: cx + Math.cos(n.angle) * idleR,
+          currentY: cy + Math.sin(n.angle) * idleR * 0.6,
           idleR,
-          farR:     n.farR * baseR,
-          convergeR: idleR * 0.35,
-          x: cx + Math.cos(n.angle) * idleR,
-          y: cy + Math.sin(n.angle) * idleR * 0.6,
+          // Far target — fixed position on canvas edge
+          targetX: cx + Math.cos(n.farAngle) * n.farR * baseR,
+          targetY: cy + Math.sin(n.farAngle) * n.farR * baseR * 0.6,
         }));
       }
 
+      // Init ambient symbols
       if (!ambientRef.current) {
         ambientRef.current = AMBIENT_WORDS.map((word, i) => ({
           word,
           x: Math.random() * W,
           y: Math.random() * H,
-          vx: (Math.random() - 0.5) * 0.25,
-          vy: (Math.random() - 0.5) * 0.25,
-          // BRIGHTER base alpha — was 0.06-0.16, now 0.18-0.32
-          baseAlpha: 0.18 + Math.random() * 0.14,
-          size:  10 + Math.random() * 6,
+          vx: (Math.random() - 0.5) * 0.3,
+          vy: (Math.random() - 0.5) * 0.3,
+          baseAlpha: 0.20 + Math.random() * 0.15,
+          size: 10 + Math.random() * 6,
           phase: Math.random() * Math.PI * 2,
           color: ["#3b82f6","#10b981","#a855f7","#f97316","#64748b"][i % 5],
         }));
@@ -102,71 +118,69 @@ export default function GraphPanel({ graph, isRunning }) {
       t++;
       textPhase.current += 0.02;
 
-      const state = stateRef.current;
+      const phase = phaseRef.current;
 
-      if (state === "done") {
+      if (phase === "done") {
         animRef.current = requestAnimationFrame(draw);
         return;
       }
 
-      // Cross-fade text
-      if (state === "scatter" || state === "converge") {
-        awaitAlpha.current    = Math.max(0, awaitAlpha.current - 0.025);
-        researchAlpha.current = Math.min(1, researchAlpha.current + 0.025);
-      } else {
-        awaitAlpha.current    = Math.min(1, awaitAlpha.current + 0.015);
-        researchAlpha.current = Math.max(0, researchAlpha.current - 0.015);
+      // ── Text alphas ──
+      if (phase === "idle") {
+        awaitAlpha.current = Math.min(1, awaitAlpha.current + 0.02);
+        resAlpha.current   = Math.max(0, resAlpha.current   - 0.02);
+        doneAlpha.current  = Math.max(0, doneAlpha.current  - 0.02);
+      } else if (phase === "dispersed") {
+        awaitAlpha.current = Math.max(0, awaitAlpha.current - 0.03);
+        resAlpha.current   = Math.min(1, resAlpha.current   + 0.03);
+        doneAlpha.current  = Math.max(0, doneAlpha.current  - 0.02);
       }
 
-      // ── Ambient words — drawn FIRST so text renders on top ──
+      // ── Ambient symbols ──
       ambientRef.current.forEach(w => {
-        const spd = (state !== "idle") ? 1.5 : 1;
-        w.x += w.vx * spd;
-        w.y += w.vy * spd;
+        w.x += w.vx * (phase === "dispersed" ? 1.6 : 1);
+        w.y += w.vy * (phase === "dispersed" ? 1.6 : 1);
         if (w.x < -60) w.x = W + 60;
-        if (w.x > W + 60) w.x = -60;
+        if (w.x > W+60) w.x = -60;
         if (w.y < -20) w.y = H + 20;
-        if (w.y > H + 20) w.y = -20;
+        if (w.y > H+20) w.y = -20;
 
-        // Full pulse — no dimming from overlay text
-        const pa = w.baseAlpha * (0.6 + 0.4 * Math.sin(w.phase + t * 0.012));
+        const a = w.baseAlpha * (0.6 + 0.4 * Math.sin(w.phase + t * 0.012));
         ctx.font = `${w.size}px 'Space Mono', monospace`;
-        ctx.fillStyle = w.color;
-        ctx.globalAlpha = pa;
+        ctx.fillStyle   = w.color;
+        ctx.globalAlpha = a;
         ctx.fillText(w.word, w.x, w.y);
         ctx.globalAlpha = 1;
       });
 
       // ── AWAITING RESEARCH ──
       if (awaitAlpha.current > 0.01) {
-        const label = "AWAITING RESEARCH";
         ctx.font = `800 54px 'Syne', sans-serif`;
+        const label = "AWAITING RESEARCH";
         const mw = ctx.measureText(label).width;
         const sc = Math.min(1, (W - 80) / mw);
         const fs = Math.floor(54 * sc);
-        ctx.font = `800 ${fs}px 'Syne', sans-serif`;
-        ctx.fillStyle = "#334155";
+        ctx.font        = `800 ${fs}px 'Syne', sans-serif`;
+        ctx.fillStyle   = "#334155";
         ctx.globalAlpha = awaitAlpha.current * (0.35 + 0.06 * Math.sin(textPhase.current));
-        ctx.textAlign = "center";
+        ctx.textAlign   = "center";
         ctx.fillText(label, cx, cy + fs * 0.35);
         ctx.globalAlpha = 1;
-        ctx.textAlign = "left";
+        ctx.textAlign   = "left";
       }
 
-      // ── RESEARCHING... banner — full width, prominent ──
-      if (researchAlpha.current > 0.01) {
+      // ── RESEARCHING... with glow ──
+      if (resAlpha.current > 0.01) {
+        ctx.font = `800 56px 'Syne', sans-serif`;
         const label = "RESEARCHING...";
-        ctx.font = `800 58px 'Syne', sans-serif`;
         const mw = ctx.measureText(label).width;
         const sc = Math.min(1, (W - 40) / mw);
-        const fs = Math.floor(58 * sc);
-        ctx.font = `800 ${fs}px 'Syne', sans-serif`;
-
-        // Blue glow behind text
+        const fs = Math.floor(56 * sc);
+        ctx.font         = `800 ${fs}px 'Syne', sans-serif`;
         ctx.shadowColor  = "#3b82f6";
-        ctx.shadowBlur   = 30;
+        ctx.shadowBlur   = 24;
         ctx.fillStyle    = "#3b82f6";
-        ctx.globalAlpha  = researchAlpha.current * (0.22 + 0.08 * Math.sin(textPhase.current * 2));
+        ctx.globalAlpha  = resAlpha.current * (0.22 + 0.08 * Math.sin(textPhase.current * 2));
         ctx.textAlign    = "center";
         ctx.fillText(label, cx, cy + fs * 0.35);
         ctx.shadowBlur   = 0;
@@ -187,68 +201,65 @@ export default function GraphPanel({ graph, isRunning }) {
       ctx.fillStyle = CENTER_NODE.color + "33"; ctx.fill();
       ctx.globalAlpha = 1;
 
-      // ── Ring orbit ──
+      // ── Orbit angle ──
       globalAngle.current += ORBIT_SPEED;
 
-      let scatterDone = true;
+      // ── Nodes ──
       nodesRef.current.forEach((node, i) => {
-        if (state === "idle") {
-          const ang = globalAngle.current + node.phase;
-          const tx  = cx + Math.cos(ang) * node.idleR;
-          const ty  = cy + Math.sin(ang) * node.idleR * 0.6;
-          node.currentR = node.idleR;
-          node.x += (tx - node.x) * 0.08;
-          node.y += (ty - node.y) * 0.08;
+        let tx, ty;
 
-        } else if (state === "scatter") {
-          node.currentR += (node.farR - node.currentR) * 0.012;
-          if (node.currentR < node.farR * 0.95) scatterDone = false;
-          node.phase += node.speed;
-          const tx = cx + Math.cos(node.phase) * node.currentR;
-          const ty = cy + Math.sin(node.phase) * node.currentR * 0.6;
-          node.x += (tx - node.x) * 0.08;
-          node.y += (ty - node.y) * 0.08;
-
-        } else if (state === "converge") {
-          node.currentR += (node.convergeR - node.currentR) * 0.018;
-          node.phase += node.speed * 1.5;
-          const tx = cx + Math.cos(node.phase) * node.currentR;
-          const ty = cy + Math.sin(node.phase) * node.currentR * 0.6;
-          node.x += (tx - node.x) * 0.10;
-          node.y += (ty - node.y) * 0.10;
+        if (phase === "idle") {
+          // Perfect synchronized circle
+          const ang = globalAngle.current + node.angle;
+          tx = cx + Math.cos(ang) * idleR;
+          ty = cy + Math.sin(ang) * idleR * 0.6;
+        } else {
+          // Dispersed — ease toward fixed far target
+          tx = node.targetX;
+          ty = node.targetY;
         }
 
-        const pulse = 0.65 + 0.35 * Math.sin(t * 0.035 + i * 1.3);
-        const alpha = state !== "idle" ? 0.75 + 0.25 * Math.sin(t * 0.02 + i * 0.9) : 1;
+        // Smooth ease
+        const ease = phase === "idle" ? 0.08 : 0.025;
+        node.currentX += (tx - node.currentX) * ease;
+        node.currentY += (ty - node.currentY) * ease;
 
-        ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(node.x, node.y);
+        const nx = node.currentX;
+        const ny = node.currentY;
+        const pulse = 0.65 + 0.35 * Math.sin(t * 0.035 + i * 1.3);
+        const alpha = phase === "dispersed"
+          ? 0.75 + 0.25 * Math.sin(t * 0.02 + i * 0.9) : 1;
+
+        // Line to center
+        ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(nx, ny);
         ctx.strokeStyle = node.color; ctx.lineWidth = 0.5;
         ctx.globalAlpha = alpha * 0.1; ctx.stroke();
 
-        const grd = ctx.createRadialGradient(node.x, node.y, 0, node.x, node.y, node.size * 4);
+        // Glow
+        const grd = ctx.createRadialGradient(nx, ny, 0, nx, ny, node.size * 4);
         grd.addColorStop(0, node.color + "44"); grd.addColorStop(1, "transparent");
-        ctx.beginPath(); ctx.arc(node.x, node.y, node.size * 4, 0, Math.PI * 2);
+        ctx.beginPath(); ctx.arc(nx, ny, node.size * 4, 0, Math.PI * 2);
         ctx.fillStyle = grd; ctx.globalAlpha = alpha * 0.7; ctx.fill();
 
-        ctx.beginPath(); ctx.arc(node.x, node.y, node.size + 4, 0, Math.PI * 2);
+        // Outer ring
+        ctx.beginPath(); ctx.arc(nx, ny, node.size + 4, 0, Math.PI * 2);
         ctx.strokeStyle = node.color; ctx.lineWidth = 1;
         ctx.globalAlpha = alpha * pulse * 0.3; ctx.stroke();
 
-        ctx.beginPath(); ctx.arc(node.x, node.y, node.size, 0, Math.PI * 2);
+        // Main circle
+        ctx.beginPath(); ctx.arc(nx, ny, node.size, 0, Math.PI * 2);
         ctx.strokeStyle = node.color; ctx.lineWidth = 2;
         ctx.globalAlpha = alpha * pulse; ctx.stroke();
         ctx.fillStyle = node.color + "22"; ctx.fill();
 
+        // Label
         ctx.globalAlpha = alpha * 0.9;
         ctx.font = "11px 'Syne', monospace";
         ctx.fillStyle = node.color;
         ctx.textAlign = "center";
-        ctx.fillText(node.label, node.x, node.y + node.size + 14);
+        ctx.fillText(node.label, nx, ny + node.size + 14);
         ctx.globalAlpha = 1;
       });
-
-      if (state === "scatter" && scatterDone) stateRef.current = "converge";
-      if (hasGraph) stateRef.current = "done";
 
       animRef.current = requestAnimationFrame(draw);
     }
@@ -259,7 +270,15 @@ export default function GraphPanel({ graph, isRunning }) {
 
   return (
     <div ref={containerRef} style={{ position: "relative", width: "100%", height: "100%", background: "#07090f", overflow: "hidden" }}>
-      <canvas ref={canvasRef} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", pointerEvents: "none", opacity: hasGraph ? 0 : 1, transition: "opacity 0.8s ease" }} />
+      <canvas
+        ref={canvasRef}
+        style={{
+          position: "absolute", inset: 0, width: "100%", height: "100%",
+          pointerEvents: "none",
+          opacity: hasGraph ? 0 : 1,
+          transition: "opacity 0.8s ease",
+        }}
+      />
       <svg ref={svgRef} style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }} />
     </div>
   );
