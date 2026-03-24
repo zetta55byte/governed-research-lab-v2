@@ -116,23 +116,16 @@ export function useGraph(svgRef, graph) {
       .attr('stroke-width', 1.5)
       .attr('stroke-dasharray', d => d.kind === 'delta' ? '4 3' : null)
       .attr('marker-end', 'url(#arr)')
-      .attr('opacity', 0)
-      // Links fade in so the graph builds visibly rather than popping in
-      .transition().duration(600).attr('opacity', 1);
+      .attr('opacity', 1); // no transition on links — avoids "too late; already running"
 
     const nodeGrp = nodeG.selectAll('g.node').data(nodes).enter()
       .append('g').attr('class','node').style('cursor','pointer')
-      .attr('opacity', 0)
+      .attr('opacity', 1) // no transition — render immediately, no conflict
       .call(d3.drag()
         .on('start', (e,d) => { if (!e.active) simRef.current.alphaTarget(.3).restart(); d.fx=d.x; d.fy=d.y; })
         .on('drag',  (e,d) => { d.fx=e.x; d.fy=e.y; })
         .on('end',   (e,d) => { if (!e.active) simRef.current.alphaTarget(0); if (d.role !== 'synthesizer') { d.fx=null; d.fy=null; } })
       );
-
-    // Nodes fade in staggered by index
-    nodeGrp.each(function(d, i) {
-      d3.select(this).transition().delay(i * 80).duration(500).attr('opacity', 1);
-    });
 
     // Glow halo
     nodeGrp.append('circle')
