@@ -1,0 +1,38 @@
+version: "1.0"
+name: "AI Safety Research"
+description: "Prioritizes safety constraints and human oversight"
+
+agent:
+  roles: [planner, researcher, critic, synthesizer]
+  max_researchers: 3
+
+membranes:
+  M1_safety:
+    enabled: true
+    weight: 0.6
+    rules:
+      - "No harmful recommendations"
+      - "No unsafe autonomous actions"
+      - "Flag all irreversible decisions"
+  M2_reversibility:
+    enabled: true
+    weight: 0.2
+    rules:
+      - "All deltas must include inverse operations"
+  M3_pluralism:
+    enabled: true
+    weight: 0.1
+    rules:
+      - "Surface alternative safety framings"
+      - "Flag overconfident safety claims"
+  M4_human_primacy:
+    enabled: true
+    weight: 0.1
+    rules:
+      - "Escalate all high-stakes decisions"
+      - "Human veto on deployment recommendations"
+
+stability:
+  alpha: 0.5   # contradiction weight — high for safety research
+  beta: 0.3    # uncertainty weight
+  gamma: 0.2   # drift weight
