@@ -55,8 +55,9 @@ async def test_llm():
             resp = await client.post(
                 "https://api.anthropic.com/v1/messages",
                 headers={"x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json"},
-                json={"model": "claude-3-5-sonnet-20241022", "max_tokens": 50, "messages": [{"role": "user", "content": "say hi"}]},
+                json={"model": "claude-sonnet-4-5", "max_tokens": 50, "messages": [{"role": "user", "content": "say hi"}]},
             )
             return {"status": resp.status_code, "key_prefix": key[:12], "body": resp.text[:300]}
     except Exception as exc:
         return {"error": str(exc), "key_prefix": key[:12]}
+
