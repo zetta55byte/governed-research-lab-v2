@@ -100,8 +100,8 @@ def build_initial_graph(session_id: str) -> tuple[list[GraphNode], list[GraphLin
 async def call_llm(prompt: str, api_key: str = "", model: str = "claude") -> str:
     """LLM dispatcher — tries Anthropic, then OpenAI, then mock."""
     import os
-    anthropic_key = api_key if model == "claude" else os.getenv("ANTHROPIC_API_KEY", "")
-    openai_key = api_key if model == "openai" else os.getenv("OPENAI_API_KEY", "")
+    anthropic_key = os.getenv("ANTHROPIC_API_KEY", "") or (api_key if model == "claude" else "")
+    openai_key = os.getenv("OPENAI_API_KEY", "") or (api_key if model == "openai" else "")
 
     if anthropic_key and model in ("claude", "anthropic"):
         try:
