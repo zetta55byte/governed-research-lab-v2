@@ -260,13 +260,11 @@ class GovernedRuntime:
             f"What are the safety and governance implications of {self.query}?",
         ]
 
-        for i in range(1, 4):
-            researcher = ResearcherAgent(researcher_number=i, **kwargs)
-            await researcher.run(
-                query=self.query,
-                question=questions[i - 1],
-                existing_findings=self.state.findings,
-            )
+        researchers = [ResearcherAgent(researcher_number=i, **kwargs) for i in range(1, 4)]
+        await asyncio.gather(*[
+            r.run(query=self.query, question=questions[i], existing_findings=self.state.findings)
+            for i, r in enumerate(researchers)
+        ])
 
         # Phase 3: Critique
         critic = CriticAgent(**kwargs)
@@ -342,5 +340,3 @@ def get_runtime(runtime: str, session_id: str, query: str, profile: str, api_key
     }
     cls = runtimes.get(runtime, AnthropicRuntime)
     return cls(session_id=session_id, query=query, profile=profile, api_key=api_key)
-
-
