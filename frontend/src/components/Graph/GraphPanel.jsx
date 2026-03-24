@@ -1,15 +1,14 @@
 import React, { useRef, useEffect } from "react";
 import { useGraph } from "../../hooks/useGraph";
 
-// Idle: all same radius perfect circle
-// On run: each flies to its own far position independently
+// Each node has its own drift speed — floaty, independent
 const RING_NODES = [
-  { label: "Human",        color: "#f59e0b", size: 10, angle: 0,             farR: 0.80, farAngle: Math.PI * 0.05  },
-  { label: "Researcher #1",color: "#10b981", size: 9,  angle: Math.PI*0.333, farR: 0.75, farAngle: Math.PI * 0.42  },
-  { label: "Researcher #2",color: "#10b981", size: 9,  angle: Math.PI*0.666, farR: 0.82, farAngle: Math.PI * 1.78  },
-  { label: "Researcher #3",color: "#10b981", size: 9,  angle: Math.PI*1.0,   farR: 0.72, farAngle: Math.PI * 1.28  },
-  { label: "Critic",       color: "#f97316", size: 10, angle: Math.PI*1.333, farR: 0.78, farAngle: Math.PI * 0.82  },
-  { label: "Planner",      color: "#3b82f6", size: 10, angle: Math.PI*1.666, farR: 0.68, farAngle: Math.PI * 1.58  },
+  { label: "Human",        color: "#f59e0b", size: 10, angle: 0,              farAngle: Math.PI * 0.05,  farR: 0.80, driftSpeed: 0.00018 },
+  { label: "Researcher #1",color: "#10b981", size: 9,  angle: Math.PI*0.333,  farAngle: Math.PI * 0.42,  farR: 0.74, driftSpeed: 0.00024 },
+  { label: "Researcher #2",color: "#10b981", size: 9,  angle: Math.PI*0.666,  farAngle: Math.PI * 1.78,  farR: 0.78, driftSpeed: 0.00020 },
+  { label: "Researcher #3",color: "#10b981", size: 9,  angle: Math.PI*1.0,    farAngle: Math.PI * 1.28,  farR: 0.72, driftSpeed: 0.00015 },
+  { label: "Critic",       color: "#f97316", size: 10, angle: Math.PI*1.333,  farAngle: Math.PI * 0.82,  farR: 0.76, driftSpeed: 0.00022 },
+  { label: "Planner",      color: "#3b82f6", size: 10, angle: Math.PI*1.666,  farAngle: Math.PI * 1.58,  farR: 0.68, driftSpeed: 0.00019 },
 ];
 
 const CENTER_NODE = { color: "#a855f7", size: 14 };
@@ -23,48 +22,42 @@ const AMBIENT_WORDS = [
   "constitutional","delta","chain","ridge","critic","synthesizer","Δ","∞",
 ];
 
-export default function GraphPanel({ graph, isRunning }) {
+export default function GraphPanel({ graph, isRunning, runComplete }) {
   const containerRef = useRef(null);
   const svgRef       = useRef(null);
   const canvasRef    = useRef(null);
   const animRef      = useRef(null);
   const nodesRef     = useRef(null);
   const ambientRef   = useRef(null);
-  const phaseRef     = useRef("idle"); // idle | dispersed | done
   const globalAngle  = useRef(0);
-  const awaitAlpha   = useRef(1);
-  const resAlpha     = useRef(0);
-  const doneAlpha    = useRef(0);
   const textPhase    = useRef(0);
-  const prevRunning  = useRef(false);
+
+  // Use a single state object ref to avoid stale closures
+  const ST = useRef({
+    phase: "idle",      // idle | dispersed | complete | done
+    awaitA: 1,
+    resA: 0,
+    synthA: 0,
+  });
 
   const hasGraph = graph?.nodes?.length > 0;
   useGraph(svgRef, graph);
 
-  // Update phase based on props
+  // Sync props every render — no stale closures
   useEffect(() => {
-    // Just became running
-    if (isRunning && !prevRunning.current) {
-      phaseRef.current = "dispersed";
-    }
-    prevRunning.current = isRunning;
-
-    // Reset on new query
+    const st = ST.current;
+    if (isRunning && st.phase === "idle")         st.phase = "dispersed";
+    if (hasGraph && st.phase === "dispersed")     st.phase = "complete";
     if (!isRunning && !hasGraph) {
-      phaseRef.current   = "idle";
-      nodesRef.current   = null;
+      st.phase  = "idle";
+      st.awaitA = 1;
+      st.resA   = 0;
+      st.synthA = 0;
+      nodesRef.current  = null;
       ambientRef.current = null;
-      awaitAlpha.current = 1;
-      resAlpha.current   = 0;
-      doneAlpha.current  = 0;
       globalAngle.current = 0;
     }
-
-    // Graph arrived
-    if (hasGraph) {
-      phaseRef.current = "done";
-    }
-  }, [isRunning, hasGraph]);
+  });
 
   useEffect(() => {
     const canvas    = canvasRef.current;
@@ -89,24 +82,25 @@ export default function GraphPanel({ graph, isRunning }) {
       if (!nodesRef.current) {
         nodesRef.current = RING_NODES.map(n => ({
           ...n,
-          // Start on perfect circle
+          // Each node starts on the perfect circle
           currentX: cx + Math.cos(n.angle) * idleR,
           currentY: cy + Math.sin(n.angle) * idleR * 0.6,
-          idleR,
-          // Far target — fixed position on canvas edge
+          // Fixed far target — unique per node
           targetX: cx + Math.cos(n.farAngle) * n.farR * baseR,
           targetY: cy + Math.sin(n.farAngle) * n.farR * baseR * 0.6,
+          // Each node orbits its far position slowly and independently
+          orbitPhase: n.angle,
         }));
       }
 
-      // Init ambient symbols
+      // Init ambient
       if (!ambientRef.current) {
         ambientRef.current = AMBIENT_WORDS.map((word, i) => ({
           word,
           x: Math.random() * W,
           y: Math.random() * H,
-          vx: (Math.random() - 0.5) * 0.3,
-          vy: (Math.random() - 0.5) * 0.3,
+          vx: (Math.random() - 0.5) * 0.28,
+          vy: (Math.random() - 0.5) * 0.28,
           baseAlpha: 0.20 + Math.random() * 0.15,
           size: 10 + Math.random() * 6,
           phase: Math.random() * Math.PI * 2,
@@ -116,83 +110,95 @@ export default function GraphPanel({ graph, isRunning }) {
 
       ctx.clearRect(0, 0, W, H);
       t++;
-      textPhase.current += 0.02;
+      textPhase.current += 0.018;
 
-      const phase = phaseRef.current;
+      const st    = ST.current;
+      const phase = st.phase;
 
-      if (phase === "done") {
-        animRef.current = requestAnimationFrame(draw);
-        return;
-      }
-
-      // ── Text alphas ──
+      // Fade text alphas
       if (phase === "idle") {
-        awaitAlpha.current = Math.min(1, awaitAlpha.current + 0.02);
-        resAlpha.current   = Math.max(0, resAlpha.current   - 0.02);
-        doneAlpha.current  = Math.max(0, doneAlpha.current  - 0.02);
+        st.awaitA = Math.min(1,   st.awaitA + 0.02);
+        st.resA   = Math.max(0,   st.resA   - 0.02);
+        st.synthA = Math.max(0,   st.synthA - 0.02);
       } else if (phase === "dispersed") {
-        awaitAlpha.current = Math.max(0, awaitAlpha.current - 0.03);
-        resAlpha.current   = Math.min(1, resAlpha.current   + 0.03);
-        doneAlpha.current  = Math.max(0, doneAlpha.current  - 0.02);
+        st.awaitA = Math.max(0,   st.awaitA - 0.025);
+        st.resA   = Math.min(1,   st.resA   + 0.025);
+        st.synthA = Math.max(0,   st.synthA - 0.02);
+      } else if (phase === "complete") {
+        st.resA   = Math.max(0,   st.resA   - 0.02);
+        st.synthA = Math.min(1,   st.synthA + 0.025);
       }
 
-      // ── Ambient symbols ──
+      // ── Ambient words ──
       ambientRef.current.forEach(w => {
-        w.x += w.vx * (phase === "dispersed" ? 1.6 : 1);
-        w.y += w.vy * (phase === "dispersed" ? 1.6 : 1);
+        w.x += w.vx * (phase !== "idle" ? 1.5 : 1);
+        w.y += w.vy * (phase !== "idle" ? 1.5 : 1);
         if (w.x < -60) w.x = W + 60;
         if (w.x > W+60) w.x = -60;
-        if (w.y < -20) w.y = H + 20;
+        if (w.y < -20)  w.y = H + 20;
         if (w.y > H+20) w.y = -20;
-
         const a = w.baseAlpha * (0.6 + 0.4 * Math.sin(w.phase + t * 0.012));
         ctx.font = `${w.size}px 'Space Mono', monospace`;
-        ctx.fillStyle   = w.color;
+        ctx.fillStyle = w.color;
         ctx.globalAlpha = a;
         ctx.fillText(w.word, w.x, w.y);
         ctx.globalAlpha = 1;
       });
 
       // ── AWAITING RESEARCH ──
-      if (awaitAlpha.current > 0.01) {
-        ctx.font = `800 54px 'Syne', sans-serif`;
+      if (st.awaitA > 0.01) {
         const label = "AWAITING RESEARCH";
-        const mw = ctx.measureText(label).width;
-        const sc = Math.min(1, (W - 80) / mw);
+        ctx.font = `800 54px 'Syne', sans-serif`;
+        const sc = Math.min(1, (W-80) / ctx.measureText(label).width);
         const fs = Math.floor(54 * sc);
-        ctx.font        = `800 ${fs}px 'Syne', sans-serif`;
-        ctx.fillStyle   = "#334155";
-        ctx.globalAlpha = awaitAlpha.current * (0.35 + 0.06 * Math.sin(textPhase.current));
-        ctx.textAlign   = "center";
+        ctx.font = `800 ${fs}px 'Syne', sans-serif`;
+        ctx.fillStyle = "#334155";
+        ctx.globalAlpha = st.awaitA * (0.35 + 0.05 * Math.sin(textPhase.current));
+        ctx.textAlign = "center";
         ctx.fillText(label, cx, cy + fs * 0.35);
-        ctx.globalAlpha = 1;
-        ctx.textAlign   = "left";
+        ctx.globalAlpha = 1; ctx.textAlign = "left";
       }
 
-      // ── RESEARCHING... with glow ──
-      if (resAlpha.current > 0.01) {
-        ctx.font = `800 56px 'Syne', sans-serif`;
+      // ── RESEARCHING... ──
+      if (st.resA > 0.01) {
         const label = "RESEARCHING...";
-        const mw = ctx.measureText(label).width;
-        const sc = Math.min(1, (W - 40) / mw);
+        ctx.font = `800 56px 'Syne', sans-serif`;
+        const sc = Math.min(1, (W-40) / ctx.measureText(label).width);
         const fs = Math.floor(56 * sc);
-        ctx.font         = `800 ${fs}px 'Syne', sans-serif`;
-        ctx.shadowColor  = "#3b82f6";
-        ctx.shadowBlur   = 24;
-        ctx.fillStyle    = "#3b82f6";
-        ctx.globalAlpha  = resAlpha.current * (0.22 + 0.08 * Math.sin(textPhase.current * 2));
-        ctx.textAlign    = "center";
+        ctx.font = `800 ${fs}px 'Syne', sans-serif`;
+        ctx.shadowColor = "#3b82f6"; ctx.shadowBlur = 28;
+        ctx.fillStyle = "#3b82f6";
+        ctx.globalAlpha = st.resA * (0.22 + 0.07 * Math.sin(textPhase.current * 2));
+        ctx.textAlign = "center";
         ctx.fillText(label, cx, cy + fs * 0.35);
-        ctx.shadowBlur   = 0;
-        ctx.globalAlpha  = 1;
-        ctx.textAlign    = "left";
+        ctx.shadowBlur = 0; ctx.globalAlpha = 1; ctx.textAlign = "left";
+      }
+
+      // ── SYNTHESIS COMPLETE ──
+      if (st.synthA > 0.01) {
+        const label = "SYNTHESIS COMPLETE";
+        ctx.font = `800 52px 'Syne', sans-serif`;
+        const sc = Math.min(1, (W-40) / ctx.measureText(label).width);
+        const fs = Math.floor(52 * sc);
+        ctx.font = `800 ${fs}px 'Syne', sans-serif`;
+        ctx.shadowColor = "#a855f7"; ctx.shadowBlur = 32;
+        ctx.fillStyle = "#a855f7";
+        ctx.globalAlpha = st.synthA * (0.28 + 0.08 * Math.sin(textPhase.current * 1.5));
+        ctx.textAlign = "center";
+        ctx.fillText(label, cx, cy + fs * 0.35);
+
+        // Sub-label
+        ctx.font = `400 13px 'Space Mono', monospace`;
+        ctx.fillStyle = "#a855f7";
+        ctx.globalAlpha = st.synthA * 0.5;
+        ctx.fillText("governed · audited · stable", cx, cy + fs * 0.35 + 28);
+        ctx.shadowBlur = 0; ctx.globalAlpha = 1; ctx.textAlign = "left";
       }
 
       // ── Center Synthesizer ──
       const cp = 0.7 + 0.3 * Math.sin(t * 0.04);
       const cg = ctx.createRadialGradient(cx, cy, 0, cx, cy, CENTER_NODE.size * 4);
-      cg.addColorStop(0, CENTER_NODE.color + "55");
-      cg.addColorStop(1, "transparent");
+      cg.addColorStop(0, CENTER_NODE.color + "55"); cg.addColorStop(1, "transparent");
       ctx.beginPath(); ctx.arc(cx, cy, CENTER_NODE.size * 4, 0, Math.PI * 2);
       ctx.fillStyle = cg; ctx.globalAlpha = 0.6; ctx.fill();
       ctx.beginPath(); ctx.arc(cx, cy, CENTER_NODE.size, 0, Math.PI * 2);
@@ -209,25 +215,29 @@ export default function GraphPanel({ graph, isRunning }) {
         let tx, ty;
 
         if (phase === "idle") {
-          // Perfect synchronized circle
+          // Synchronized perfect circle
           const ang = globalAngle.current + node.angle;
           tx = cx + Math.cos(ang) * idleR;
           ty = cy + Math.sin(ang) * idleR * 0.6;
+          node.currentX += (tx - node.currentX) * 0.08;
+          node.currentY += (ty - node.currentY) * 0.08;
         } else {
-          // Dispersed — ease toward fixed far target
-          tx = node.targetX;
-          ty = node.targetY;
+          // Each node drifts to its own target independently
+          // Also adds a slow independent orbit around its target for floaty feel
+          node.orbitPhase += node.driftSpeed;
+          const floatX = Math.cos(node.orbitPhase) * 12;
+          const floatY = Math.sin(node.orbitPhase) * 8;
+          tx = node.targetX + floatX;
+          ty = node.targetY + floatY;
+          // Very slow ease — floaty
+          node.currentX += (tx - node.currentX) * 0.018;
+          node.currentY += (ty - node.currentY) * 0.018;
         }
-
-        // Smooth ease
-        const ease = phase === "idle" ? 0.08 : 0.025;
-        node.currentX += (tx - node.currentX) * ease;
-        node.currentY += (ty - node.currentY) * ease;
 
         const nx = node.currentX;
         const ny = node.currentY;
         const pulse = 0.65 + 0.35 * Math.sin(t * 0.035 + i * 1.3);
-        const alpha = phase === "dispersed"
+        const alpha = phase !== "idle"
           ? 0.75 + 0.25 * Math.sin(t * 0.02 + i * 0.9) : 1;
 
         // Line to center
@@ -241,18 +251,15 @@ export default function GraphPanel({ graph, isRunning }) {
         ctx.beginPath(); ctx.arc(nx, ny, node.size * 4, 0, Math.PI * 2);
         ctx.fillStyle = grd; ctx.globalAlpha = alpha * 0.7; ctx.fill();
 
-        // Outer ring
         ctx.beginPath(); ctx.arc(nx, ny, node.size + 4, 0, Math.PI * 2);
         ctx.strokeStyle = node.color; ctx.lineWidth = 1;
         ctx.globalAlpha = alpha * pulse * 0.3; ctx.stroke();
 
-        // Main circle
         ctx.beginPath(); ctx.arc(nx, ny, node.size, 0, Math.PI * 2);
         ctx.strokeStyle = node.color; ctx.lineWidth = 2;
         ctx.globalAlpha = alpha * pulse; ctx.stroke();
         ctx.fillStyle = node.color + "22"; ctx.fill();
 
-        // Label
         ctx.globalAlpha = alpha * 0.9;
         ctx.font = "11px 'Syne', monospace";
         ctx.fillStyle = node.color;
