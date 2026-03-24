@@ -100,7 +100,7 @@ export default function App() {
           <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', minHeight: 0 }}>
             <PipelineAnimation agents={state.agents} status={state.status} />
             <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
-              <div style={{ flex: 1, minHeight: 0, position: "relative" }}><GraphPanel graph={state.graph} /></div>
+              <GraphPanel graph={state.graph} />
               {isThinking && (
                 <div style={{
                   position: 'absolute', inset: 0, pointerEvents: 'none',
@@ -173,4 +173,5 @@ export default function App() {
   );
 }
 // thinking-animations-v2
+
 

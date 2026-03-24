@@ -6,7 +6,7 @@ export default function GraphPanel({ graph }) {
   useGraph(svgRef, graph);
 
   return (
-    <div style={{ flex: 1, background: '#07090f', position: 'relative', overflow: 'hidden', minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+    <div style={{ height: '100%', background: '#07090f', position: 'relative', overflow: 'hidden', minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <svg ref={svgRef} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }} />
       {!graph?.nodes?.length && (
         <div style={{
@@ -23,3 +23,4 @@ export default function GraphPanel({ graph }) {
     </div>
   );
 }
+
