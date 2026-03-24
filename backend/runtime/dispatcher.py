@@ -114,7 +114,7 @@ async def call_llm(prompt: str, api_key: str = "", model: str = "claude") -> str
                         "content-type": "application/json",
                     },
                     json={
-                        "model": "claude-3-5-sonnet-20241022",
+                        "model": "claude-sonnet-4-5",
                         "max_tokens": 1024,
                         "messages": [{"role": "user", "content": prompt}],
                     },
