@@ -1,63 +1,82 @@
-import { useEffect, useRef } from 'react';
-
-const BACKEND = import.meta.env.VITE_GRL_BACKEND_URL
-  || 'https://governed-research-lab-v2-production.up.railway.app';
+import { useEffect } from "react"
 
 export function useSSE(sessionId, dispatch) {
-  const esRef = useRef(null);
-
   useEffect(() => {
-    if (!sessionId) return;
+    if (!sessionId) return
 
-    const url = `${BACKEND}/stream/${sessionId}`;
-    const es = new EventSource(url, { withCredentials: false });
-    esRef.current = es;
+    const url = `/api/sse?sessionId=${encodeURIComponent(sessionId)}`
+    const es = new EventSource(url)
 
-    es.onmessage = (e) => {
+    es.onmessage = (event) => {
+      if (!event.data) return
+      let msg
       try {
-        const msg = JSON.parse(e.data);
-
-        // ── Phase machine — driven by RUN LIFECYCLE only ──────────────────
-        // First agent running → burst phase
-        if (msg.type === 'agent_update' && msg.status === 'running') {
-          dispatch({ type: 'SET_PHASE', phase: 'burst' });
-        }
-
-        // Graph updating → advance phase (burst→drift→converge)
-        // but never to complete — that's final_output only
-        if (msg.type === 'graph_update') {
-          dispatch({ type: 'ADVANCE_PHASE' });
-        }
-
-        // Stability update → extract entropy if present
-        if (msg.type === 'stability_update' && msg.entropy != null) {
-          dispatch({ type: 'SET_ENTROPY', value: msg.entropy });
-        }
-
-        // Run actually finished → complete phase
-        if (msg.type === 'final_output') {
-          dispatch({ type: 'SET_PHASE', phase: 'complete' });
-        }
-
-        if (msg.type === 'stream_end') {
-          es.close();
-        }
-
-        // Always dispatch raw event for reducer
-        dispatch(msg);
-
-      } catch (err) {
-        console.error('SSE parse error:', err);
+        msg = JSON.parse(event.data)
+      } catch {
+        return
       }
-    };
 
-    es.onerror = (err) => {
-      console.warn('SSE connection lost:', err);
-      es.close();
-    };
+      // STATUS → PHASE
+      if (msg.type === "status") {
+        dispatch({ type: "SET_STATUS", status: msg.status })
 
-    return () => es.close();
-  }, [sessionId, dispatch]);
+        if (msg.status === "running") {
+          dispatch({ type: "SET_PHASE", phase: "burst" })
+        }
 
-  return esRef;
+        if (msg.status === "complete") {
+          dispatch({ type: "SET_PHASE", phase: "complete" })
+        }
+      }
+
+      // GRAPH → DATA + PHASE PROGRESSION
+      if (msg.type === "graph") {
+        dispatch({ type: "SET_GRAPH", graph: msg.graph })
+        dispatch({ type: "ADVANCE_PHASE" })
+      }
+
+      // ENTROPY
+      if (msg.type === "entropy") {
+        dispatch({ type: "SET_ENTROPY", value: msg.value })
+      }
+
+      // DELTAS
+      if (msg.type === "delta") {
+        dispatch({ type: "ADD_DELTA", delta: msg.delta })
+      }
+
+      // LOGS
+      if (msg.type === "log") {
+        dispatch({ type: "ADD_LOG", log: msg.log })
+      }
+
+      // AUDIT
+      if (msg.type === "audit") {
+        dispatch({ type: "ADD_AUDIT", entry: msg.entry })
+      }
+
+      // STABILITY
+      if (msg.type === "stability") {
+        dispatch({ type: "SET_STABILITY", value: msg.value })
+      }
+
+      // RUNTIME
+      if (msg.type === "runtime") {
+        dispatch({ type: "SET_RUNTIME", value: msg.value })
+      }
+
+      // AGENTS
+      if (msg.type === "agents") {
+        dispatch({ type: "SET_AGENTS", agents: msg.agents })
+      }
+    }
+
+    es.onerror = () => {
+      es.close()
+    }
+
+    return () => {
+      es.close()
+    }
+  }, [sessionId, dispatch])
 }
