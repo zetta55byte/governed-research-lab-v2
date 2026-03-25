@@ -172,19 +172,21 @@ export default function App() {
               ))}
             </div>
 
-            {/* RIGHT PANEL CONTENT */}
-            <div style={{ flex: 1, overflowY: "auto", padding: 10 }}>
-              {rightTab === "chain" && (
-                <ContinuityChain chain={state.continuityChain || []} />
-              )}
-
-              {rightTab === "audit" && (
-                <AuditLog
-                  membraneLog={state.membraneLog || []}
-                <ContinuityChain deltas={state.continuityChain || []} finalBrief={state.finalBrief} />
-
-                />
-              )}
+         {/* RIGHT PANEL CONTENT */}
+<div style={{ flex: 1, overflowY: "auto", padding: 10 }}>
+  {rightTab === "chain" && (
+    <ContinuityChain deltas={state.continuityChain || []} finalBrief={state.finalBrief} />
+  )}
+  {rightTab === "audit" && (
+    <AuditLog
+      membraneLog={state.membraneLog || []}
+      continuityChain={state.continuityChain || []}
+    />
+  )}
+  {rightTab === "constitution" && (
+    <ConstitutionBuilder state={state} dispatch={dispatch} />
+  )}
+</div>
 
               {rightTab === "constitution" && (
                 <ConstitutionBuilder state={state} dispatch={dispatch} />
