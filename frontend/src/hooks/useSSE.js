@@ -4,11 +4,14 @@ export function useSSE(sessionId, dispatch) {
   useEffect(() => {
     if (!sessionId) return
 
-    const url = `/api/sse?sessionId=${encodeURIComponent(sessionId)}`
+    const backend = import.meta.env.VITE_GRL_BACKEND_URL
+    const url = `${backend}/stream/${sessionId}`
+
     const es = new EventSource(url)
 
     es.onmessage = (event) => {
       if (!event.data) return
+
       let msg
       try {
         msg = JSON.parse(event.data)
