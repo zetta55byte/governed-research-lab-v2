@@ -2,25 +2,30 @@ import React, { useEffect, useState } from "react"
 import { narrativeConfig } from "./narrativeConfig"
 import "./graphPanel.css"
 
-export default function NarrativeOverlay({ phase }) {
-  const entry = narrativeConfig[phase]
-  const sequence = entry?.sequence || []
+function bucketEntropy(entropy) {
+  if (entropy == null) return "medium"
+  if (entropy < 0.33) return "low"
+  if (entropy < 0.66) return "medium"
+  return "high"
+}
 
+export default function NarrativeOverlay({ phase, entropy }) {
+  const entry = narrativeConfig[phase]
+  if (!entry) return null
+
+  const bucket = bucketEntropy(entropy)
+  const sequence = entry.sequence?.[bucket] || entry.sequence || []
   const [index, setIndex] = useState(0)
 
-  // Reset sequence when phase changes
   useEffect(() => {
     setIndex(0)
-  }, [phase])
+  }, [phase, bucket])
 
-  // Advance through lines
   useEffect(() => {
     if (sequence.length <= 1) return
-
     const timer = setTimeout(() => {
       setIndex((i) => (i + 1 < sequence.length ? i + 1 : i))
-    }, 1600) // 1.6s per line (tweakable)
-
+    }, 1600)
     return () => clearTimeout(timer)
   }, [index, sequence.length])
 
