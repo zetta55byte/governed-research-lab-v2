@@ -5,7 +5,7 @@ import { useSSE } from "./hooks/useSSE";
 
 import Header from "./components/Header/Header";
 import ControlPanel from "./components/ControlPanel/ControlPanel";
-import GraphPanel from "./components/GraphPanel/GraphPanel";   // ← FIX #1
+import GraphPanel from "./components/Graph/GraphPanel"; // ← FIX #1
 import MembraneLog from "./components/MembraneLog/MembraneLog";
 import StabilityPanel from "./components/Stability/StabilityPanel";
 import ConstitutionBuilder from "./components/ConstitutionBuilder/ConstitutionBuilder";
@@ -123,10 +123,11 @@ export default function App() {
               minWidth: 0,
             }}
           >
-            <GraphPanel
-              data={state.graph}          // ← FIX #2
-              phaseOverride={phase}       // ← FIX #2
-            />
+           <GraphPanel
+             graph={state.graph}
+             isRunning={state.status === "running"}
+             runComplete={state.runComplete}
+           />
           </div>
 
           {/* RIGHT COLUMN */}
