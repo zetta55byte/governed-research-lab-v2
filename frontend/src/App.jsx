@@ -75,7 +75,7 @@ export default function App() {
       >
         {/* PHASE-AWARE HEADER */}
         <Header
-          stability={state.currentStability}
+          history={state.stabilityHistory} current={state.currentStability}
           runtime={state.runtime}
           status={state.status}
           phase={phase}
@@ -105,7 +105,7 @@ export default function App() {
               <ControlPanel state={state} dispatch={dispatch} />
             </div>
             <div style={{ padding: 10, borderBottom: "1px solid #0f172a" }}>
-              <StabilityPanel stability={state.currentStability} />
+              <StabilityPanel history={state.stabilityHistory} current={state.currentStability} />
             </div>
             <div style={{ flex: 1, overflowY: "auto", padding: 10 }}>
               <MembraneLog log={state.membraneLog} />
