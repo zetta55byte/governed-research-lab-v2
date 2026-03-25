@@ -14,9 +14,8 @@ import ContinuityChain from "./components/GraphPanel/ContinuityChain";
 
 const css = `
 @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=Space+Mono:wght@400;700&family=Space+Grotesk:wght@400;500;700&display=swap');
-
 @keyframes fadeIn { from{opacity:0;transform:translateY(4px)} to{opacity:1;transform:translateY(0)} }
-@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+@keyframes pulse  { 0%,100%{opacity:1} 50%{opacity:.3} }
 @keyframes scanDown {
   0%   { top: 0%;   opacity: 0.8; }
   90%  { top: 100%; opacity: 0.2; }
@@ -69,13 +68,13 @@ export default function App() {
 
       <div style={{
         display: "grid",
-        gridTemplateRows: "56px 1fr 56px",
+        gridTemplateRows: "88px 1fr 56px",   /* 28px brand + 60px pipeline = 88px */
         height: "100vh",
         overflow: "hidden",
         background: "#020617",
       }}>
 
-        {/* ── TOP HEADER with pipeline ── */}
+        {/* ── HEADER (brand row + pipeline row) ── */}
         <Header
           stability={state.stabilityHistory}
           sessionId={state.sessionId}
@@ -91,10 +90,9 @@ export default function App() {
           overflow: "hidden",
         }}>
 
-          {/* ── LEFT: Control + Agents + Stability ── */}
+          {/* LEFT */}
           <div style={{
-            display: "flex",
-            flexDirection: "column",
+            display: "flex", flexDirection: "column",
             borderRight: "1px solid #0f172a",
             overflow: "hidden",
             background: "#060a12",
@@ -107,12 +105,8 @@ export default function App() {
             </div>
           </div>
 
-          {/* ── CENTER: Graph ── */}
-          <div style={{
-            position: "relative",
-            overflow: "hidden",
-            background: "#07090f",
-          }}>
+          {/* CENTER */}
+          <div style={{ position: "relative", overflow: "hidden", background: "#07090f" }}>
             <GraphPanel
               graph={state.graph}
               isRunning={state.status === "running"}
@@ -120,20 +114,15 @@ export default function App() {
             />
           </div>
 
-          {/* ── RIGHT: Membrane Log + Chain/Audit ── */}
+          {/* RIGHT */}
           <div style={{
-            display: "flex",
-            flexDirection: "column",
+            display: "flex", flexDirection: "column",
             borderLeft: "1px solid #0f172a",
             overflow: "hidden",
             background: "#060a12",
           }}>
-
-            {/* Tab bar — MEMBRANE LOG | CHAIN | AUDIT */}
             <div style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 2,
+              display: "flex", alignItems: "center", gap: 2,
               padding: "6px 8px",
               borderBottom: "1px solid #0f172a",
               flexShrink: 0,
@@ -149,25 +138,16 @@ export default function App() {
               ))}
             </div>
 
-            {/* Membrane log lives at top, always visible when on membrane tab */}
             <div style={{ flex: 1, overflowY: "auto", padding: "8px 10px" }}>
               {rightTab === "membrane" && (
                 <MembraneLog logs={state.membraneLog || []} />
               )}
               {rightTab === "chain" && (
                 <>
-                  {/* Mini membrane log strip at top */}
-                  <div style={{
-                    borderBottom: "1px solid #0f172a",
-                    marginBottom: 8,
-                    paddingBottom: 8,
-                  }}>
+                  <div style={{ borderBottom: "1px solid #0f172a", marginBottom: 8, paddingBottom: 8 }}>
                     <MembraneLog logs={(state.membraneLog || []).slice(-6)} compact />
                   </div>
-                  <ContinuityChain
-                    deltas={state.continuityChain || []}
-                    finalBrief={state.finalBrief}
-                  />
+                  <ContinuityChain deltas={state.continuityChain || []} finalBrief={state.finalBrief} />
                 </>
               )}
               {rightTab === "audit" && (
@@ -180,7 +160,7 @@ export default function App() {
           </div>
         </div>
 
-        {/* ── BOTTOM: Pipeline animation bar ── */}
+        {/* ── BOTTOM PIPELINE BAR ── */}
         <PipelineAnimation agents={state.agents} status={state.status} />
       </div>
     </>
