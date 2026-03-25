@@ -1,4 +1,4 @@
-import React, { useReducer, useState, useEffect } from "react"
+import React, { useReducer, useState } from "react"
 import { grlReducer } from "./state/reducer"
 import { initialState } from "./state/initialState"
 import { useSSE } from "./hooks/useSSE"
@@ -75,7 +75,7 @@ export default function App() {
       >
         {/* PHASE-AWARE HEADER */}
         <Header
-          history={state.stabilityHistory} current={state.currentStability}
+          stability={state.currentStability}
           runtime={state.runtime}
           status={state.status}
           phase={phase}
@@ -104,11 +104,16 @@ export default function App() {
             <div style={{ padding: 10, borderBottom: "1px solid #0f172a" }}>
               <ControlPanel state={state} dispatch={dispatch} />
             </div>
+
             <div style={{ padding: 10, borderBottom: "1px solid #0f172a" }}>
-              <StabilityPanel history={state.stabilityHistory} current={state.currentStability} />
+              <StabilityPanel
+                history={state.stabilityHistory || []}
+                current={state.currentStability}
+              />
             </div>
+
             <div style={{ flex: 1, overflowY: "auto", padding: 10 }}>
-              <MembraneLog log={state.membraneLog} />
+              <MembraneLog logs={state.membraneLog || []} />
             </div>
           </div>
 
@@ -173,13 +178,14 @@ export default function App() {
             {/* Content */}
             <div style={{ flex: 1, overflowY: "auto", padding: 10 }}>
               {rightTab === "chain" && (
-                deltas={state.continuityChain}
+                <ContinuityChain
+                  deltas={state.continuityChain || []}
                   phase={phase}
                 />
               )}
 
               {rightTab === "audit" && (
-                <AuditLog  entries={state.membraneLog} />
+                <AuditLog entries={state.membraneLog || []} />
               )}
 
               {rightTab === "constitution" && (
