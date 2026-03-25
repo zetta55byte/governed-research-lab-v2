@@ -82,9 +82,11 @@ export default function App() {
         {/* MAIN BODY */}
         <div
           style={{
-            display: "grid",
+           display: "grid",
             gridTemplateColumns: "260px 1fr 320px",
             minHeight: 0,
+            width: "100%",
+            overflow: "hidden",
             borderTop: "1px solid #0f172a",
             borderBottom: "1px solid #0f172a",
           }}
