@@ -18,7 +18,9 @@ export const initialState = {
 
   // chain
   continuityChain: [],
-
+  finalBrief: null,   
+  runComplete: false,
+  
   // agents
   agents: {},
 
