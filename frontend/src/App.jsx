@@ -194,3 +194,5 @@ export default function App() {
         <PipelineAnimation agents={state.agents} status={state.status} />
       </div>
     </>
+  );
+}
