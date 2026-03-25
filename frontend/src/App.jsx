@@ -13,6 +13,8 @@ import AuditLog from "./components/AuditLog/AuditLog";
 import ContinuityChain from "./components/GraphPanel/ContinuityChain";
 
 const css = `
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=Space+Mono:wght@400;700&family=Space+Grotesk:wght@400;500;700&display=swap');
+
 @keyframes fadeIn { from{opacity:0;transform:translateY(4px)} to{opacity:1;transform:translateY(0)} }
 @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
 @keyframes scanDown {
@@ -33,9 +35,23 @@ html, body, #root { height: 100%; margin: 0; padding: 0; background:#020617; col
 ::-webkit-scrollbar-thumb { background: #1e2a3a; border-radius: 2px; }
 `;
 
+const TAB_STYLE = (active) => ({
+  border: "none",
+  background: active ? "#0f172a" : "transparent",
+  color: active ? "#e5e7eb" : "#334155",
+  padding: "3px 10px",
+  borderRadius: 999,
+  cursor: "pointer",
+  fontFamily: "'Space Mono', monospace",
+  fontSize: 10,
+  letterSpacing: 1,
+  textTransform: "uppercase",
+  transition: "color 0.2s",
+});
+
 export default function App() {
   const [state, dispatch] = useReducer(grlReducer, initialState);
-  const [rightTab, setRightTab] = useState("chain");
+  const [rightTab, setRightTab] = useState("membrane");
 
   useSSE(state.sessionId, dispatch);
 
@@ -50,43 +66,53 @@ export default function App() {
     <>
       <style>{css}</style>
       {isThinking && <div className="membrane-scan" />}
+
       <div style={{
         display: "grid",
-        gridTemplateRows: "56px 1fr 64px",
+        gridTemplateRows: "56px 1fr 56px",
         height: "100vh",
         overflow: "hidden",
+        background: "#020617",
       }}>
+
+        {/* ── TOP HEADER with pipeline ── */}
         <Header
           stability={state.stabilityHistory}
           sessionId={state.sessionId}
           status={state.status}
           phase={phase}
         />
+
+        {/* ── MAIN BODY ── */}
         <div style={{
           display: "grid",
-          gridTemplateColumns: "260px 1fr 320px",
+          gridTemplateColumns: "240px 1fr 300px",
           minHeight: 0,
-          minWidth: 0,
-          width: "100%",
           overflow: "hidden",
-          borderTop: "1px solid #0f172a",
-          borderBottom: "1px solid #0f172a",
         }}>
-          {/* LEFT */}
-          <div style={{ display: "flex", flexDirection: "column", borderRight: "1px solid #0f172a", overflow: "hidden" }}>
-            <div style={{ padding: 10, borderBottom: "1px solid #0f172a" }}>
+
+          {/* ── LEFT: Control + Agents + Stability ── */}
+          <div style={{
+            display: "flex",
+            flexDirection: "column",
+            borderRight: "1px solid #0f172a",
+            overflow: "hidden",
+            background: "#060a12",
+          }}>
+            <div style={{ padding: "10px 10px 8px", borderBottom: "1px solid #0f172a", flexShrink: 0 }}>
               <ControlPanel state={state} dispatch={dispatch} />
             </div>
-            <div style={{ padding: 10, borderBottom: "1px solid #0f172a" }}>
+            <div style={{ padding: "8px 10px", borderBottom: "1px solid #0f172a", flexShrink: 0 }}>
               <StabilityPanel stability={state.stabilityHistory || []} />
-            </div>
-            <div style={{ flex: 1, overflowY: "auto", padding: 10 }}>
-              <MembraneLog logs={state.membraneLog || []} />
             </div>
           </div>
 
-          {/* CENTER */}
-          <div style={{ position: "relative", overflow: "hidden", padding: 12, minWidth: 0 }}>
+          {/* ── CENTER: Graph ── */}
+          <div style={{
+            position: "relative",
+            overflow: "hidden",
+            background: "#07090f",
+          }}>
             <GraphPanel
               graph={state.graph}
               isRunning={state.status === "running"}
@@ -94,23 +120,55 @@ export default function App() {
             />
           </div>
 
-          {/* RIGHT */}
-          <div style={{ display: "flex", flexDirection: "column", borderLeft: "1px solid #0f172a", overflow: "hidden" }}>
-            <div style={{ display: "flex", borderBottom: "1px solid #0f172a", padding: "6px 8px", gap: 6, fontSize: 11, fontFamily: "Space Grotesk, system-ui" }}>
-              {["chain", "audit", "constitution"].map((tab) => (
-                <button key={tab} onClick={() => setRightTab(tab)} style={{
-                  border: "none",
-                  background: rightTab === tab ? "#0f172a" : "transparent",
-                  color: rightTab === tab ? "#e5e7eb" : "#6b7280",
-                  padding: "4px 8px", borderRadius: 999, cursor: "pointer",
-                }}>
-                  {tab === "chain" ? "Continuity" : tab === "audit" ? "Audit" : "Constitution"}
+          {/* ── RIGHT: Membrane Log + Chain/Audit ── */}
+          <div style={{
+            display: "flex",
+            flexDirection: "column",
+            borderLeft: "1px solid #0f172a",
+            overflow: "hidden",
+            background: "#060a12",
+          }}>
+
+            {/* Tab bar — MEMBRANE LOG | CHAIN | AUDIT */}
+            <div style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 2,
+              padding: "6px 8px",
+              borderBottom: "1px solid #0f172a",
+              flexShrink: 0,
+            }}>
+              {[
+                { key: "membrane", label: "Membrane" },
+                { key: "chain",    label: "Chain" },
+                { key: "audit",    label: "Audit" },
+              ].map(({ key, label }) => (
+                <button key={key} onClick={() => setRightTab(key)} style={TAB_STYLE(rightTab === key)}>
+                  {label}
                 </button>
               ))}
             </div>
-            <div style={{ flex: 1, overflowY: "auto", padding: 10 }}>
+
+            {/* Membrane log lives at top, always visible when on membrane tab */}
+            <div style={{ flex: 1, overflowY: "auto", padding: "8px 10px" }}>
+              {rightTab === "membrane" && (
+                <MembraneLog logs={state.membraneLog || []} />
+              )}
               {rightTab === "chain" && (
-                <ContinuityChain deltas={state.continuityChain || []} finalBrief={state.finalBrief} />
+                <>
+                  {/* Mini membrane log strip at top */}
+                  <div style={{
+                    borderBottom: "1px solid #0f172a",
+                    marginBottom: 8,
+                    paddingBottom: 8,
+                  }}>
+                    <MembraneLog logs={(state.membraneLog || []).slice(-6)} compact />
+                  </div>
+                  <ContinuityChain
+                    deltas={state.continuityChain || []}
+                    finalBrief={state.finalBrief}
+                  />
+                </>
               )}
               {rightTab === "audit" && (
                 <AuditLog
@@ -118,13 +176,11 @@ export default function App() {
                   continuityChain={state.continuityChain || []}
                 />
               )}
-              {rightTab === "constitution" && (
-                <ConstitutionBuilder state={state} dispatch={dispatch} />
-              )}
             </div>
           </div>
         </div>
 
+        {/* ── BOTTOM: Pipeline animation bar ── */}
         <PipelineAnimation agents={state.agents} status={state.status} />
       </div>
     </>
