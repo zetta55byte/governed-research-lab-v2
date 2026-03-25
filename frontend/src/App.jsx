@@ -1,19 +1,17 @@
-import React, { useReducer, useState } from "react"
-import { grlReducer } from "./state/reducer"
-import { initialState } from "./state/initialState"
-import { useSSE } from "./hooks/useSSE"
+import React, { useReducer, useState } from "react";
+import { grlReducer } from "./state/reducer";
+import { initialState } from "./state/initialState";
+import { useSSE } from "./hooks/useSSE";
 
-import Header from "./components/Header/Header"
-import ControlPanel from "./components/ControlPanel/ControlPanel"
-import GraphPanel from "./components/GraphPanel/GraphPanel"
-import MembraneLog from "./components/MembraneLog/MembraneLog"
-import StabilityPanel from "./components/Stability/StabilityPanel"
-import ConstitutionBuilder from "./components/ConstitutionBuilder/ConstitutionBuilder"
-import PipelineAnimation from "./components/Pipeline/PipelineAnimation"
-import AuditLog from "./components/AuditLog/AuditLog"
-
-// v2 chain
-import ContinuityChain from "./components/GraphPanel/ContinuityChain"
+import Header from "./components/Header/Header";
+import ControlPanel from "./components/ControlPanel/ControlPanel";
+import GraphPanel from "./components/GraphPanel/GraphPanel";
+import MembraneLog from "./components/MembraneLog/MembraneLog";
+import StabilityPanel from "./components/Stability/StabilityPanel";
+import ConstitutionBuilder from "./components/ConstitutionBuilder/ConstitutionBuilder";
+import PipelineAnimation from "./components/Pipeline/PipelineAnimation";
+import AuditLog from "./components/AuditLog/AuditLog";
+import ContinuityChain from "./components/GraphPanel/ContinuityChain";
 
 // ------------------------------------------------------------
 // GLOBAL CSS
@@ -41,23 +39,23 @@ html, body, #root { height: 100%; margin: 0; padding: 0; background:#020617; col
 ::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: #1e2a3a; border-radius: 2px; }
-`
+`;
 
 // ------------------------------------------------------------
 // MAIN APP (GRL v2 shell)
 // ------------------------------------------------------------
 export default function App() {
-  const [state, dispatch] = useReducer(grlReducer, initialState)
-  const [rightTab, setRightTab] = useState("chain")
+  const [state, dispatch] = useReducer(grlReducer, initialState);
+  const [rightTab, setRightTab] = useState("chain");
 
-  useSSE(state.sessionId, dispatch)
+  useSSE(state.sessionId, dispatch);
 
   const runningAgent = Object.entries(state.agents || {}).find(
     ([, a]) => a?.status === "running"
-  )?.[0]
+  )?.[0];
 
-  const isThinking = state.status === "running" && !!runningAgent
-  const phase = state.phase || "idle"
+  const isThinking = state.status === "running" && !!runningAgent;
+  const phase = state.phase || "idle";
 
   return (
     <>
@@ -73,10 +71,10 @@ export default function App() {
           overflow: "hidden",
         }}
       >
-        {/* PHASE-AWARE HEADER */}
+        {/* HEADER */}
         <Header
-          stability={state.currentStability}
-          runtime={state.runtime}
+          stability={state.stabilityHistory}
+          sessionId={state.sessionId}
           status={state.status}
           phase={phase}
         />
@@ -86,13 +84,12 @@ export default function App() {
           style={{
             display: "grid",
             gridTemplateColumns: "260px minmax(0,1fr) 320px",
-            gap: 0,
             minHeight: 0,
             borderTop: "1px solid #0f172a",
             borderBottom: "1px solid #0f172a",
           }}
         >
-          {/* LEFT STRIP: controls + stability + log */}
+          {/* LEFT COLUMN */}
           <div
             style={{
               display: "flex",
@@ -106,10 +103,7 @@ export default function App() {
             </div>
 
             <div style={{ padding: 10, borderBottom: "1px solid #0f172a" }}>
-              <StabilityPanel
-                history={state.stabilityHistory || []}
-                current={state.currentStability}
-              />
+              <StabilityPanel stability={state.stabilityHistory || []} />
             </div>
 
             <div style={{ flex: 1, overflowY: "auto", padding: 10 }}>
@@ -117,7 +111,7 @@ export default function App() {
             </div>
           </div>
 
-          {/* CENTER: GraphPanel v22 + narrative engine */}
+          {/* CENTER: GRAPH PANEL */}
           <div
             style={{
               position: "relative",
@@ -125,13 +119,10 @@ export default function App() {
               padding: 12,
             }}
           >
-            <GraphPanel
-              data={state.graph}
-              phaseOverride={phase}
-            />
+            <GraphPanel data={state.graph} phaseOverride={phase} />
           </div>
 
-          {/* RIGHT: chain / audit / constitution */}
+          {/* RIGHT COLUMN */}
           <div
             style={{
               display: "flex",
@@ -140,7 +131,7 @@ export default function App() {
               overflow: "hidden",
             }}
           >
-            {/* Tabs */}
+            {/* TABS */}
             <div
               style={{
                 display: "flex",
@@ -157,10 +148,8 @@ export default function App() {
                   onClick={() => setRightTab(tab)}
                   style={{
                     border: "none",
-                    background:
-                      rightTab === tab ? "#0f172a" : "transparent",
-                    color:
-                      rightTab === tab ? "#e5e7eb" : "#6b7280",
+                    background: rightTab === tab ? "#0f172a" : "transparent",
+                    color: rightTab === tab ? "#e5e7eb" : "#6b7280",
                     padding: "4px 8px",
                     borderRadius: 999,
                     cursor: "pointer",
@@ -175,32 +164,29 @@ export default function App() {
               ))}
             </div>
 
-            {/* Content */}
+            {/* RIGHT PANEL CONTENT */}
             <div style={{ flex: 1, overflowY: "auto", padding: 10 }}>
               {rightTab === "chain" && (
-                <ContinuityChain
-                  deltas={state.continuityChain || []}
-                  phase={phase}
-                />
+                <ContinuityChain chain={state.continuityChain || []} />
               )}
 
               {rightTab === "audit" && (
-                <AuditLog entries={state.membraneLog || []} />
+                <AuditLog
+                  membraneLog={state.membraneLog || []}
+                  continuityChain={state.continuityChain || []}
+                />
               )}
 
               {rightTab === "constitution" && (
-                <ConstitutionBuilder
-                  state={state}
-                  dispatch={dispatch}
-                />
+                <ConstitutionBuilder state={state} dispatch={dispatch} />
               )}
             </div>
           </div>
         </div>
 
-        {/* PHASE-AWARE FOOTER / PIPELINE */}
-        <PipelineAnimation status={state.status} phase={phase} />
+        {/* FOOTER / PIPELINE */}
+        <PipelineAnimation agents={state.agents} status={state.status} />
       </div>
     </>
-  )
+  );
 }
