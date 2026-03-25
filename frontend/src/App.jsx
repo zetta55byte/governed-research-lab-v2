@@ -173,14 +173,13 @@ export default function App() {
             {/* Content */}
             <div style={{ flex: 1, overflowY: "auto", padding: 10 }}>
               {rightTab === "chain" && (
-                <ContinuityChain
-                  deltas={state.deltas}
+                deltas={state.continuityChain}
                   phase={phase}
                 />
               )}
 
               {rightTab === "audit" && (
-                <AuditLog entries={state.audit} />
+                <AuditLog  entries={state.membraneLog} />
               )}
 
               {rightTab === "constitution" && (
