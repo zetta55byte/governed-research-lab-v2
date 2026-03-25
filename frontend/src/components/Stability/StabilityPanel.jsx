@@ -29,7 +29,7 @@ export default function StabilityPanel({ history, current }) {
   const svgRef = useRef(null);
   useStabilityChart(svgRef, history);
   const color = stabilityColor(current);
-  const scores = history.map(h => h.score);
+  const scores = (history || []).map(h => h.score);
 
   const trend = scores.length > 1
     ? scores[scores.length - 1] - scores[scores.length - 2]
