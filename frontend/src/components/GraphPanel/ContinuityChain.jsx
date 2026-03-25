@@ -15,7 +15,9 @@ export default function ContinuityChain({ deltas, finalBrief }) {
           <div style={{
             color: "#a855f7", fontSize: 9, letterSpacing: 2,
             textTransform: "uppercase", marginBottom: 4,
-          }}>Executive Summary</div>
+          }}>
+            Executive Summary
+          </div>
           {finalBrief}
         </div>
       )}
