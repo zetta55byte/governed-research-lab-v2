@@ -191,9 +191,9 @@ export default function App() {
           </div>
         </div>
 
-        {/* FOOTER / PIPELINE */}
+           {/* FOOTER / PIPELINE */}
         <PipelineAnimation agents={state.agents} status={state.status} />
-      </div>
+      </div>   {/* ← closes outer grid */}
     </>
   );
 }
