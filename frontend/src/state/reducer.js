@@ -107,7 +107,10 @@ export function grlReducer(state, event) {
       };
 
     case 'SET_QUERY':
-      return { ...state, query: event.query };
+      return { 
+  ...state, 
+  query: typeof event.query === "string" ? event.query : "" 
+};
 
     case 'SET_PROFILE':
       return { ...state, profile: event.profile };
