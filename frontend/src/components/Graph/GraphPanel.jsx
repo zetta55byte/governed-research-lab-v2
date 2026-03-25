@@ -1,11 +1,6 @@
 import React, { useRef, useEffect, useState } from "react";
 import { useGraph } from "../../hooks/useGraph";
 
-// CHAOS → ORDER story
-// Idle: nodes at independent orbits (chaos)
-// Thinking: nodes converge one by one (governance pulling them)
-// Complete: React overlay fires — ONLY on final_output, not graph delta
-
 const RING_NODES = [
   { label: "Human",        color: "#f59e0b", size: 10, idleR: 0.78, idlePhase: Math.PI*0.1,  idleSpd: 0.00025, convDelay: 0   },
   { label: "Researcher #1",color: "#10b981", size: 9,  idleR: 0.72, idlePhase: Math.PI*0.55, idleSpd: 0.0003,  convDelay: 50  },
@@ -18,7 +13,6 @@ const RING_NODES = [
 const CIRCLE_R  = 0.38;
 const ORBIT_SPD = 0.0005;
 const CENTER    = { label: "Synthesizer", color: "#a855f7", size: 14 };
-
 const AMBIENT_WORDS = [
   "M1","M2","M3","M4","δ","S(t)","α","β","γ","λ",
   "continuity","membrane","governed","attractor","∇","∑","∫","∂",
@@ -37,13 +31,12 @@ export default function GraphPanel({ graph, isRunning, runComplete }) {
   const thinkFrame   = useRef(0);
   const globalAngle  = useRef(0);
   const awaitAlpha   = useRef(1);
-  const resAlpha     = useRef(0);
   const textPhase    = useRef(0);
   const prevRunning  = useRef(false);
   const prevComplete = useRef(false);
 
-  // SYNTHESIS COMPLETE — React overlay, only shows when runComplete flips true
-  const [showSynth, setShowSynth] = useState(false);
+  const [showSynth,       setShowSynth]       = useState(false);
+  const [showResearching, setShowResearching] = useState(false);
 
   const hasGraph = !!(graph?.nodes?.length);
   useGraph(svgRef, graph);
@@ -51,34 +44,31 @@ export default function GraphPanel({ graph, isRunning, runComplete }) {
   useEffect(() => {
     const wasRunning  = prevRunning.current;
     const wasComplete = prevComplete.current;
-
     prevRunning.current  = isRunning;
     prevComplete.current = runComplete;
 
-    // New run starting — reset everything
     if (isRunning && !wasRunning) {
-      stateRef.current    = "thinking";
-      thinkFrame.current  = 0;
+      stateRef.current = "thinking";
+      thinkFrame.current = 0;
       setShowSynth(false);
+      setShowResearching(true);
     }
 
-    // Run just completed — runComplete flipped true AND isRunning just went false
-    // This only fires when final_output SSE arrives (reducer sets runComplete=true)
     if (runComplete && !wasComplete) {
       stateRef.current = "complete";
+      setShowResearching(false);
       setTimeout(() => setShowSynth(true), 800);
     }
 
-    // Full reset when back to idle
     if (!isRunning && !runComplete && !hasGraph && stateRef.current !== "complete") {
-      stateRef.current    = "idle";
-      nodesRef.current    = null;
-      ambientRef.current  = null;
-      awaitAlpha.current  = 1;
-      resAlpha.current    = 0;
-      thinkFrame.current  = 0;
+      stateRef.current  = "idle";
+      nodesRef.current  = null;
+      ambientRef.current = null;
+      awaitAlpha.current = 1;
+      thinkFrame.current = 0;
       globalAngle.current = 0;
       setShowSynth(false);
+      setShowResearching(false);
     }
   }, [isRunning, runComplete, hasGraph]);
 
@@ -92,30 +82,24 @@ export default function GraphPanel({ graph, isRunning, runComplete }) {
     canvas.width  = W;
     canvas.height = H;
 
-    const ctx   = canvas.getContext("2d");
-    const cx    = W / 2;
-    const cy    = H / 2;
-    const baseR = Math.min(W, H) / 2;
+    const ctx    = canvas.getContext("2d");
+    const cx     = W / 2;
+    const cy     = H / 2;
+    const baseR  = Math.min(W, H) / 2;
     const circleR = CIRCLE_R * baseR;
-
     let t = 0;
 
     function draw() {
       if (!nodesRef.current) {
         nodesRef.current = RING_NODES.map((n, i) => {
           const r = n.idleR * baseR;
-          return {
-            ...n,
-            phase: n.idlePhase,
-            currentR: r,
+          return { ...n, phase: n.idlePhase, currentR: r,
             x: cx + Math.cos(n.idlePhase) * r,
             y: cy + Math.sin(n.idlePhase) * r * 0.6,
             circleAngle: (i / RING_NODES.length) * Math.PI * 2,
-            converged: 0,
-          };
+            converged: 0 };
         });
       }
-
       if (!ambientRef.current) {
         ambientRef.current = AMBIENT_WORDS.map((word, i) => ({
           word, x: Math.random()*W, y: Math.random()*H,
@@ -129,20 +113,14 @@ export default function GraphPanel({ graph, isRunning, runComplete }) {
       ctx.clearRect(0, 0, W, H);
       t++;
       textPhase.current += 0.018;
-
       const state = stateRef.current;
       if (state === "thinking") thinkFrame.current++;
 
-      // Text alphas
+      // awaitAlpha: visible when idle, fades when thinking/complete
       if (state === "idle") {
         awaitAlpha.current = Math.min(1, awaitAlpha.current + 0.02);
-        resAlpha.current   = Math.max(0, resAlpha.current   - 0.02);
-      } else if (state === "thinking") {
-        awaitAlpha.current = Math.max(0, awaitAlpha.current - 0.025);
-        resAlpha.current   = Math.min(1, resAlpha.current   + 0.025);
       } else {
-        resAlpha.current   = Math.max(0, resAlpha.current   - 0.02);
-        awaitAlpha.current = Math.max(0, awaitAlpha.current - 0.02);
+        awaitAlpha.current = Math.max(0, awaitAlpha.current - 0.025);
       }
 
       // Ambient words
@@ -157,7 +135,7 @@ export default function GraphPanel({ graph, isRunning, runComplete }) {
         ctx.fillText(w.word,w.x,w.y); ctx.globalAlpha=1;
       });
 
-      // AWAITING RESEARCH
+      // AWAITING RESEARCH text
       if (awaitAlpha.current > 0.01) {
         const lbl = "AWAITING RESEARCH";
         ctx.font=`800 54px 'Syne',sans-serif`;
@@ -170,20 +148,6 @@ export default function GraphPanel({ graph, isRunning, runComplete }) {
         ctx.globalAlpha=1; ctx.textAlign="left";
       }
 
-      // RESEARCHING...
-      if (resAlpha.current > 0.01) {
-        const lbl = "RESEARCHING...";
-        ctx.font=`800 56px 'Syne',sans-serif`;
-        const sc=Math.min(1,(W-40)/ctx.measureText(lbl).width);
-        const fs=Math.floor(56*sc);
-        ctx.font=`800 ${fs}px 'Syne',sans-serif`;
-        ctx.shadowColor="#3b82f6"; ctx.shadowBlur=28;
-        ctx.fillStyle="#3b82f6";
-        ctx.globalAlpha=resAlpha.current*(0.22+0.07*Math.sin(textPhase.current*2));
-        ctx.textAlign="center"; ctx.fillText(lbl,cx,cy+fs*0.35);
-        ctx.shadowBlur=0; ctx.globalAlpha=1; ctx.textAlign="left";
-      }
-
       // Center Synthesizer
       const cp=0.7+0.3*Math.sin(t*0.04);
       const cg=ctx.createRadialGradient(cx,cy,0,cx,cy,CENTER.size*4);
@@ -191,20 +155,16 @@ export default function GraphPanel({ graph, isRunning, runComplete }) {
       ctx.beginPath(); ctx.arc(cx,cy,CENTER.size*4,0,Math.PI*2);
       ctx.fillStyle=cg; ctx.globalAlpha=0.6; ctx.fill();
       ctx.beginPath(); ctx.arc(cx,cy,CENTER.size,0,Math.PI*2);
-      ctx.strokeStyle=CENTER.color; ctx.lineWidth=2.5;
-      ctx.globalAlpha=cp; ctx.stroke();
+      ctx.strokeStyle=CENTER.color; ctx.lineWidth=2.5; ctx.globalAlpha=cp; ctx.stroke();
       ctx.fillStyle=CENTER.color+"33"; ctx.fill();
       ctx.globalAlpha=0.7; ctx.font="11px 'Syne',monospace";
       ctx.fillStyle=CENTER.color; ctx.textAlign="center";
-      ctx.fillText(CENTER.label,cx,cy+CENTER.size+14);
-      ctx.globalAlpha=1;
-
+      ctx.fillText(CENTER.label,cx,cy+CENTER.size+14); ctx.globalAlpha=1;
       globalAngle.current += ORBIT_SPD;
 
       // Nodes
       nodesRef.current.forEach((node, i) => {
         let tx, ty;
-
         if (state === "idle") {
           node.phase += node.idleSpd;
           tx = cx + Math.cos(node.phase)*node.currentR;
@@ -228,17 +188,14 @@ export default function GraphPanel({ graph, isRunning, runComplete }) {
           tx = cx + Math.cos(circAng)*circleR;
           ty = cy + Math.sin(circAng)*circleR*0.6;
         }
-
         node.x += (tx-node.x)*0.10;
         node.y += (ty-node.y)*0.10;
 
         const pulse = 0.65+0.35*Math.sin(t*0.035+i*1.05);
-        const alpha = state==="thinking"
-          ? 0.6+0.4*node.converged+0.1*Math.sin(t*0.02+i*0.8) : 1;
+        const alpha = state==="thinking" ? 0.6+0.4*node.converged+0.1*Math.sin(t*0.02+i*0.8) : 1;
 
         ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(node.x,node.y);
-        ctx.strokeStyle=node.color; ctx.lineWidth=0.5;
-        ctx.globalAlpha=alpha*0.12; ctx.stroke();
+        ctx.strokeStyle=node.color; ctx.lineWidth=0.5; ctx.globalAlpha=alpha*0.12; ctx.stroke();
 
         const glowR=node.size*(3+node.converged*2);
         const grd=ctx.createRadialGradient(node.x,node.y,0,node.x,node.y,glowR);
@@ -247,19 +204,15 @@ export default function GraphPanel({ graph, isRunning, runComplete }) {
         ctx.fillStyle=grd; ctx.globalAlpha=alpha*0.7; ctx.fill();
 
         ctx.beginPath(); ctx.arc(node.x,node.y,node.size+4,0,Math.PI*2);
-        ctx.strokeStyle=node.color; ctx.lineWidth=1;
-        ctx.globalAlpha=alpha*pulse*0.3; ctx.stroke();
+        ctx.strokeStyle=node.color; ctx.lineWidth=1; ctx.globalAlpha=alpha*pulse*0.3; ctx.stroke();
 
         ctx.beginPath(); ctx.arc(node.x,node.y,node.size,0,Math.PI*2);
-        ctx.strokeStyle=node.color; ctx.lineWidth=2;
-        ctx.globalAlpha=alpha*pulse; ctx.stroke();
+        ctx.strokeStyle=node.color; ctx.lineWidth=2; ctx.globalAlpha=alpha*pulse; ctx.stroke();
         ctx.fillStyle=node.color+"22"; ctx.fill();
 
-        ctx.globalAlpha=alpha*0.9;
-        ctx.font="11px 'Syne',monospace";
+        ctx.globalAlpha=alpha*0.9; ctx.font="11px 'Syne',monospace";
         ctx.fillStyle=node.color; ctx.textAlign="center";
-        ctx.fillText(node.label,node.x,node.y+node.size+14);
-        ctx.globalAlpha=1;
+        ctx.fillText(node.label,node.x,node.y+node.size+14); ctx.globalAlpha=1;
       });
 
       animRef.current = requestAnimationFrame(draw);
@@ -279,22 +232,39 @@ export default function GraphPanel({ graph, isRunning, runComplete }) {
       }}/>
       <svg ref={svgRef} style={{position:"absolute",inset:0,width:"100%",height:"100%"}}/>
 
-      {/* SYNTHESIS COMPLETE — only shows after final_output SSE event */}
+      {/* RESEARCHING overlay — stays visible entire run */}
+      {showResearching && !showSynth && (
+        <div style={{
+          position:"absolute",inset:0,pointerEvents:"none",
+          display:"flex",alignItems:"center",justifyContent:"center",
+          zIndex:5,
+        }}>
+          <div style={{
+            fontFamily:"'Syne',sans-serif",fontWeight:800,
+            fontSize:"clamp(28px,4vw,52px)",
+            color:"#3b82f6",textAlign:"center",
+            textShadow:"0 0 40px #3b82f6,0 0 80px #3b82f655",
+            letterSpacing:2,opacity:0.25,
+          }}>
+            RESEARCHING...
+          </div>
+        </div>
+      )}
+
+      {/* SYNTHESIS COMPLETE — only on final_output */}
       {showSynth && (
         <div style={{
           position:"absolute",inset:0,pointerEvents:"none",
           display:"flex",flexDirection:"column",
           alignItems:"center",justifyContent:"center",
-          zIndex:10,
-          animation:"synthFadeIn 0.8s ease forwards",
+          zIndex:10,animation:"synthFadeIn 0.8s ease forwards",
         }}>
           <div style={{
             fontFamily:"'Syne',sans-serif",fontWeight:800,
             fontSize:"clamp(28px,4vw,52px)",
             color:"#a855f7",textAlign:"center",
             textShadow:"0 0 40px #a855f7,0 0 80px #a855f755",
-            letterSpacing:2,
-            animation:"synthPulse 2s ease-in-out infinite",
+            letterSpacing:2,animation:"synthPulse 2s ease-in-out infinite",
           }}>
             SYNTHESIS COMPLETE
           </div>
