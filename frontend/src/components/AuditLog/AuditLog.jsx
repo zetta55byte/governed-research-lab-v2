@@ -32,8 +32,8 @@ export default function AuditLog({ membraneLog, continuityChain }) {
         <span style={{ color: '#1e2a3a' }}>{entries.length} entries</span>
       </div>
       <div style={{ flex: 1, overflowY: 'auto', padding: '6px 8px', display: 'flex', flexDirection: 'column', gap: 3 }}>
-        {entries.map((entry, i) => {
-          if (entry._type === 'membrane') {
+        {entries.map((, i) => {
+          if (._type === 'membrane') {
             const sev = severityOf(entry);
             return (
               <div key={`m-${i}`} style={{
@@ -86,7 +86,7 @@ export default function AuditLog({ membraneLog, continuityChain }) {
               {entry.stability_after != null && (
                 <span style={{ fontSize: 8, color: entry.stability_after > 0.7 ? '#10b981' : '#f59e0b',
                   whiteSpace: 'nowrap', fontFamily: 'Space Mono' }}>
-                  {entry.stability_after.toFixed(2)}
+                  {entry.stability_after != null ? entry.stability_after.toFixed(2) : "—"}
                 </span>
               )}
             </div>
