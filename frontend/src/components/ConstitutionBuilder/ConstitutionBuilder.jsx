@@ -64,7 +64,7 @@ export default function ConstitutionBuilder() {
                 onChange={e => updateMembrane(key, 'weight', parseFloat(e.target.value))}
                 style={{ flex: 1, accentColor: MEMBRANE_COLORS[key] }} />
               <span style={{ fontSize: 11, color: MEMBRANE_COLORS[key], width: 32, textAlign: 'right' }}>
-                {m.weight.toFixed(2)}
+                {m.weight != null ? m.weight.toFixed(2) : "—"}
               </span>
             </div>
           </div>
