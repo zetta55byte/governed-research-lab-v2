@@ -87,7 +87,6 @@ export default function App() {
             minHeight: 0,
             width: "100%",
             overflow: "hidden",
-            maxWidth: "100vw",
             borderTop: "1px solid #0f172a",
             borderBottom: "1px solid #0f172a",
           }}
@@ -195,5 +194,3 @@ export default function App() {
         <PipelineAnimation agents={state.agents} status={state.status} />
       </div>
     </>
-  );
-}
