@@ -119,6 +119,7 @@ export default function App() {
               position: "relative",
               overflow: "hidden",
               padding: 12,
+              minWidth: 0,
             }}
           >
              <GraphPanel
