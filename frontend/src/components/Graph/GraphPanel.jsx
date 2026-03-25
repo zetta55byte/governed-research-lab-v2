@@ -70,7 +70,7 @@ export default function GraphPanel({ graph, isRunning, runComplete }) {
     }
 
     // Full reset when back to idle
-    if (!isRunning && !runComplete && !hasGraph) {
+    if (!isRunning && !runComplete && !hasGraph && stateRef.current !== "complete") {
       stateRef.current    = "idle";
       nodesRef.current    = null;
       ambientRef.current  = null;
