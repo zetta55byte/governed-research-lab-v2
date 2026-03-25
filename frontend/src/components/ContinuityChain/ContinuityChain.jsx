@@ -1,91 +1,47 @@
-import React, { useRef, useEffect } from "react";
+import React from "react"
+import "./graphPanel.css"
 
-export default function ContinuityChain({ chain }) {
-  const safe = Array.isArray(chain) ? chain : [];
-  const endRef = useRef(null);
-
-  useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [safe.length]);
-
+export default function ContinuityChain({ deltas, finalBrief }) {
   return (
-    <div
-      style={{
-        flex: 1,
-        overflowY: "auto",
-        padding: "6px 8px",
-        display: "flex",
-        flexDirection: "column",
-        gap: 6,
-      }}
-    >
-      {safe.map((entry, i) => {
-        const contested = entry.contested_by?.length > 0;
-
-        return (
-          <div
-            key={i}
-            style={{
-              padding: "6px 8px",
-              borderRadius: 6,
-              background: contested
-                ? "rgba(168,85,247,.08)"
-                : "rgba(255,255,255,.03)",
-              borderLeft: contested
-                ? "2px solid #a855f7"
-                : "2px solid #3b82f6",
-            }}
-          >
-            <div
-              style={{
-                fontSize: 10,
-                color: "#64748b",
-                marginBottom: 2,
-                fontFamily: "Space Mono",
-              }}
-            >
-              Δ {entry.agent_id}
-            </div>
-
-            <div
-              style={{
-                fontSize: 12,
-                color: "#e2e8f0",
-                marginBottom: contested ? 4 : 0,
-              }}
-            >
-              {entry.description}
-            </div>
-
-            {contested && (
-              <div
-                style={{
-                  fontSize: 10,
-                  color: "#a855f7",
-                  fontFamily: "Space Mono",
-                }}
-              >
-                Contested by: {entry.contested_by.join(", ")}
-              </div>
-            )}
+    <div className="continuity-chain">
+      {finalBrief && (
+        <div style={{
+          marginBottom: 12,
+          padding: "8px 10px",
+          background: "#0f172a",
+          borderRadius: 6,
+          border: "1px solid #1e2a3a",
+          fontSize: 11,
+          color: "#94a3b8",
+          fontFamily: "Space Mono, monospace",
+          lineHeight: 1.6,
+        }}>
+          <div style={{
+            color: "#a855f7",
+            fontSize: 9,
+            letterSpacing: 2,
+            textTransform: "uppercase",
+            marginBottom: 4,
+          }}>
+            Executive Summary
           </div>
-        );
-      })}
-
-      {!safe.length && (
-        <div
-          style={{
-            color: "#334155",
-            fontSize: 11,
-            textAlign: "center",
-            padding: 16,
-          }}
-        >
-          No deltas yet
+          {finalBrief}
         </div>
       )}
-
-      <div ref={endRef} />
+      {(!deltas || deltas.length === 0) && !finalBrief && (
+        <div style={{ color: "#334155", fontSize: 11, fontFamily: "Space Mono" }}>
+          Awaiting run...
+        </div>
+      )}
+      {(deltas || []).map((d, i) => (
+        <div key={i} className="chain-item">
+          <div className="chain-index">{i + 1}</div>
+          <div className="chain-content">
+            <div className="chain-title">{d.agent_id || d.title || ""}</div>
+            <div className="chain-desc">{d.description || d.stage || ""}</div>
+          </div>
+        </div>
+      ))}
     </div>
-  );
+  )
 }
