@@ -1,47 +1,19 @@
-import { useState, useEffect } from "react"
-import { motionConfig } from "./motionConfig"
-import { computeNodePosition } from "./nodeMath"
+import { useMemo } from "react"
 
-export default function useGraphStory(data) {
-  const [phase, setPhase] = useState("idle")
-  const [nodes, setNodes] = useState([])
-  const [edges, setEdges] = useState([])
-  const [showD3, setShowD3] = useState(false)
+export function useGraphStory(data) {
+  const nodes = data?.nodes || []
+  const edges = data?.edges || []
 
-  useEffect(() => {
-    if (!data) return
+  // v22: showD3 only when graph is large enough
+  const showD3 = nodes.length > 40
 
- const baseNodes = (data.nodes || []).map((n) => ({
-      ...n,
-      x: computeNodePosition().x,
-      y: computeNodePosition().y,
-    }))
+  // v22: derive a simple internal phase if needed
+  const phase = data?.phase || "idle"
 
-    setNodes(baseNodes)
-    setEdges(data.links || [])
-
-    const seq = [
-      ["idle", motionConfig.durations.idle],
-      ["burst", motionConfig.durations.burst],
-      ["drift", motionConfig.durations.drift],
-      ["converge", motionConfig.durations.converge],
-      ["complete", motionConfig.durations.complete],
-    ]
-
-    let i = 0
-    const run = () => {
-      const [p, t] = seq[i]
-      setPhase(p)
-      i++
-      if (i < seq.length) {
-        setTimeout(run, t)
-      } else {
-        setShowD3(true)
-      }
-    }
-
-    run()
-  }, [data])
-
-  return { phase, nodes, edges, showD3 }
+  return {
+    phase,
+    nodes,
+    edges,
+    showD3,
+  }
 }
