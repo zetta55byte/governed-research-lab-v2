@@ -11,14 +11,14 @@ export default function useGraphStory(data) {
   useEffect(() => {
     if (!data) return
 
-    const baseNodes = data.nodes.map((n) => ({
+ const baseNodes = (data.nodes || []).map((n) => ({
       ...n,
       x: computeNodePosition().x,
       y: computeNodePosition().y,
     }))
 
     setNodes(baseNodes)
-    setEdges(data.edges || [])
+    setEdges(data.links || [])
 
     const seq = [
       ["idle", motionConfig.durations.idle],
