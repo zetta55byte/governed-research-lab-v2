@@ -1,29 +1,27 @@
 export const initialState = {
-  // Session
-  phase: "idle",
   sessionId: null,
-  query: '',
-  profile: 'governance',
-  runtime: 'claude',
-  status: 'idle', // idle | running | complete | error
 
-  // Agents
-  agents: {},
+  // run + phase
+  status: "idle",
+  phase: "idle",
 
-  // D3 graph
-  graph: { nodes: [], links: [] },
+  // graph + deltas
+  graph: null,
+  deltas: [],
 
-  // Membrane log
+  // stability
+  currentStability: null,
+  stabilityHistory: [],
+
+  // logs
   membraneLog: [],
 
-  // Continuity chain
+  // chain
   continuityChain: [],
 
-  // Stability
-  stabilityHistory: [],
-  currentStability: 1.0,
+  // agents
+  agents: {},
 
-  // Final output
-  finalBrief: null,
-  runComplete: false,
-};
+  // misc
+  runtime: null,
+}
