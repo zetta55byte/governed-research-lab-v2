@@ -19,7 +19,8 @@ export default function StabilityPanel({ stability }) {
 
     safe.forEach((v, i) => {
       const x = (i / (safe.length - 1)) * w;
-      const y = h - v * h;
+      const score = typeof v === "number" ? v : (v?.score ?? 0);
+      const y = h - score * h;
       i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
     });
 
@@ -68,7 +69,7 @@ export default function StabilityPanel({ stability }) {
           fontFamily: "Space Mono",
         }}
       >
-        Latest: {safe.length ? safe[safe.length - 1].toFixed(2) : "—"}
+        (typeof safe[safe.length-1] === "number" ? safe[safe.length-1] : (safe[safe.length-1]?.score ?? 0)).toFixed(2)
       </div>
     </div>
   );
