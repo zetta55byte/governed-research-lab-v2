@@ -181,7 +181,8 @@ export default function App() {
               {rightTab === "audit" && (
                 <AuditLog
                   membraneLog={state.membraneLog || []}
-                  continuityChain={state.continuityChain || []}
+                <ContinuityChain deltas={state.continuityChain || []} finalBrief={state.finalBrief} />
+
                 />
               )}
 
