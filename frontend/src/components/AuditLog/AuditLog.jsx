@@ -31,11 +31,27 @@ export default function AuditLog({ membraneLog, continuityChain }) {
         <span>Audit Log</span>
         <span style={{ color: '#1e2a3a' }}>{entries.length} entries</span>
       </div>
-      <div style={{ flex: 1, overflowY: 'auto', padding: '6px 8px', display: 'flex', flexDirection: 'column', gap: 3 }}>
-        {entries.map((, i) => {
-          if (._type === 'membrane') {
-            const sev = severityOf(entry);
-            return (
+ <div
+  style={{
+    flex: 1,
+    overflowY: 'auto',
+    padding: '6px 8px',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 3
+  }}
+>
+  {entries.map((entry, i) => {
+    if (entry._type === 'membrane') {
+      const sev = severityOf(entry);
+      return (
+        // whatever JSX you return here
+      );
+    }
+
+    return null;
+  })}
+</div>
               <div key={`m-${i}`} style={{
                 display: 'flex', alignItems: 'flex-start', gap: 6, padding: '4px 6px',
                 borderRadius: 4, background: sev.bg,
