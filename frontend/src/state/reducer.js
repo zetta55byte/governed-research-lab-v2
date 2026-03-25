@@ -1,14 +1,23 @@
 import { initialState } from './initialState';
 
+// Phase state machine transitions
+const machine = {
+  idle:     { on: { START: 'burst' } },
+  burst:    { on: { DRIFT: 'drift' } },
+  drift:    { on: { CONVERGE: 'converge' } },
+  converge: { on: { COMPLETE: 'complete' } },
+  complete: { on: { RESET: 'idle' } },
+};
+
+export function grlMachineReducer(state, action) {
+  const next = machine[state.phase]?.on?.[action.type];
+  return next ? { ...state, phase: next } : state;
+}
+
 export function grlReducer(state, event) {
   switch (event.type) {
 
-export function grlMachineReducer(state, action) {
-  const next = machine[state.phase]?.on?.[action.type]
-  return next ? { ...state, phase: next } : state
-}
-    // ── SSE events ────────────────────────────────────────────────────────────
-
+    // ── SSE events ────────────────────────────────────────────────────────
     case 'agent_update':
       return {
         ...state,
@@ -55,11 +64,10 @@ export function grlMachineReducer(state, action) {
       return {
         ...state,
         currentStability: event.score,
-        stabilityHistory: [...state.stabilityHistory, {
-          score: event.score,
-          components: event.components || {},
-          delta_id: event.delta_id,
-        }],
+        stabilityHistory: [
+          ...state.stabilityHistory,
+          { score: event.score, components: event.components || {}, delta_id: event.delta_id },
+        ],
       };
 
     case 'final_output':
@@ -82,8 +90,7 @@ export function grlMachineReducer(state, action) {
     case 'stream_end':
       return state;
 
-    // ── UI actions ────────────────────────────────────────────────────────────
-
+    // ── UI actions ────────────────────────────────────────────────────────
     case 'SET_SESSION':
       return { ...state, sessionId: event.sessionId, status: 'running' };
 
@@ -95,9 +102,9 @@ export function grlMachineReducer(state, action) {
 
     case 'SET_RUNTIME':
       return { ...state, runtime: event.runtime };
-    case "SET_PHASE":
-      return {...state, phase: action.phase
-  }
+
+    case 'SET_PHASE':
+      return { ...state, phase: event.phase };
 
     case 'RESET':
       return {

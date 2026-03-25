@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 
-const BACKEND = import.meta.env.VITE_GRL_BACKEND_URL ||
-  'https://governed-research-lab-v2-production.up.railway.app';
+const BACKEND = import.meta.env.VITE_GRL_BACKEND_URL
+  || 'https://governed-research-lab-v2-production.up.railway.app';
 
 export function useSSE(sessionId, dispatch) {
   const esRef = useRef(null);
@@ -9,19 +9,15 @@ export function useSSE(sessionId, dispatch) {
   useEffect(() => {
     if (!sessionId) return;
 
-if (msg.type === "phase") {
-  dispatch({ type: "SET_PHASE", phase: msg.phase })
-}
-
     const url = `${BACKEND}/stream/${sessionId}`;
     const es = new EventSource(url, { withCredentials: false });
     esRef.current = es;
 
     es.onmessage = (e) => {
       try {
-        const event = JSON.parse(e.data);
-        dispatch(event);
-        if (event.type === 'stream_end') es.close();
+        const msg = JSON.parse(e.data);
+        dispatch(msg);
+        if (msg.type === 'stream_end') es.close();
       } catch (err) {
         console.error('SSE parse error:', err);
       }
