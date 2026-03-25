@@ -5,11 +5,11 @@ import GraphOverlay from "./GraphOverlay"
 import GraphD3View from "./GraphD3View"
 import AttractorRidge from "./AttractorRidge"
 import NarrativeOverlay from "./NarrativeOverlay"
-import useGraphStory from "./useGraphStory"
+import { useGraphStory } from "./useGraphStory"
 import "./graphPanel.css"
 
-export default function GraphPanel({ data, phaseOverride }) {
-  const { phase, nodes, edges, showD3, entropy } = useGraphStory(data)
+export default function GraphPanel({ data, phaseOverride, entropy }) {
+  const { phase, nodes, edges, showD3 } = useGraphStory(data)
   const effectivePhase = phaseOverride || phase
 
   return (
@@ -22,7 +22,11 @@ export default function GraphPanel({ data, phaseOverride }) {
       />
 
       <GraphOverlay phase={effectivePhase} />
-      <AttractorRidge phase={effectivePhase} nodes={nodes} />
+
+      <AttractorRidge
+        phase={effectivePhase}
+        nodes={nodes}
+      />
 
       {!showD3 && (
         <GraphNodes
