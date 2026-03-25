@@ -83,7 +83,7 @@ export default function App() {
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "260px minmax(0,1fr) 320px",
+            gridTemplateColumns: "260px 1fr 320px",
             minHeight: 0,
             borderTop: "1px solid #0f172a",
             borderBottom: "1px solid #0f172a",
