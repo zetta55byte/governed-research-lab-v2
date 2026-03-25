@@ -3,6 +3,10 @@ import { initialState } from './initialState';
 export function grlReducer(state, event) {
   switch (event.type) {
 
+export function grlMachineReducer(state, action) {
+  const next = machine[state.phase]?.on?.[action.type]
+  return next ? { ...state, phase: next } : state
+}
     // ── SSE events ────────────────────────────────────────────────────────────
 
     case 'agent_update':
@@ -91,6 +95,9 @@ export function grlReducer(state, event) {
 
     case 'SET_RUNTIME':
       return { ...state, runtime: event.runtime };
+    case "SET_PHASE":
+      return {...state, phase: action.phase
+  }
 
     case 'RESET':
       return {

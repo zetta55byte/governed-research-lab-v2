@@ -9,6 +9,10 @@ export function useSSE(sessionId, dispatch) {
   useEffect(() => {
     if (!sessionId) return;
 
+if (msg.type === "phase") {
+  dispatch({ type: "SET_PHASE", phase: msg.phase })
+}
+
     const url = `${BACKEND}/stream/${sessionId}`;
     const es = new EventSource(url, { withCredentials: false });
     esRef.current = es;

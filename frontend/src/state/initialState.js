@@ -1,5 +1,6 @@
 export const initialState = {
   // Session
+  phase: "idle",
   sessionId: null,
   query: '',
   profile: 'governance',
