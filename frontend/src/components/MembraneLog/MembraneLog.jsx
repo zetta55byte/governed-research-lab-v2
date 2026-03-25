@@ -21,7 +21,7 @@ export default function MembraneLog({ logs }) {
     >
       {safe.slice(-80).map((entry, i) => (
         <div key={i} style={{ marginBottom: 4, opacity: 0.85 }}>
-          {entry}
+          {typeof entry === "string" ? entry : `${entry.membrane || ""} ${entry.result || ""} ${entry.agent_id || ""}: ${entry.reason || ""}`}
         </div>
       ))}
 
