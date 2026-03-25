@@ -112,11 +112,25 @@ export function grlReducer(state, event) {
   query: typeof event.query === "string" ? event.query : "" 
 };
 
-    case 'SET_PROFILE':
-      return { ...state, profile: event.profile };
+   case 'SET_PROFILE': {
+  const validProfiles = ["ai_safety", "evals", "governance", "planning", "custom"];
+  return {
+    ...state,
+    profile: validProfiles.includes(event.profile)
+      ? event.profile
+      : "governance",
+  };
+}
 
-    case 'SET_RUNTIME':
-      return { ...state, runtime: event.runtime };
+case 'SET_RUNTIME': {
+  const validRuntimes = ["claude", "openai", "autogen"];
+  return {
+    ...state,
+    runtime: validRuntimes.includes(event.runtime)
+      ? event.runtime
+      : "claude",
+  };
+}
 
     case 'RESET':
       return {
