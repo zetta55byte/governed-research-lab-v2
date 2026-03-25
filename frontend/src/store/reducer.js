@@ -158,7 +158,10 @@ export function grlReducer(state, action) {
       return { ...state, sessionId: action.sessionId, status: "running" };
 
     case "SET_QUERY":
-      return { ...state, query: action.query };
+      return { 
+  ...state, 
+  query: typeof action.query === "string" ? action.query : "" 
+};
 
     case "SET_PROFILE":
       return { ...state, profile: action.profile };
