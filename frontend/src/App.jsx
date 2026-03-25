@@ -5,7 +5,7 @@ import { useSSE } from "./hooks/useSSE";
 
 import Header from "./components/Header/Header";
 import ControlPanel from "./components/ControlPanel/ControlPanel";
-import GraphPanel from "./components/Graph/GraphPanel";
+import GraphPanel from "./components/GraphPanel/GraphPanel";   // ← FIX #1
 import MembraneLog from "./components/MembraneLog/MembraneLog";
 import StabilityPanel from "./components/Stability/StabilityPanel";
 import ConstitutionBuilder from "./components/ConstitutionBuilder/ConstitutionBuilder";
@@ -82,7 +82,7 @@ export default function App() {
         {/* MAIN BODY */}
         <div
           style={{
-           display: "grid",
+            display: "grid",
             gridTemplateColumns: "260px 1fr 320px",
             minHeight: 0,
             width: "100%",
@@ -105,7 +105,7 @@ export default function App() {
             </div>
 
             <div style={{ padding: 10, borderBottom: "1px solid #0f172a" }}>
-              <StabilityPanel history={state.stabilityHistory || []} current={state.currentStability} />
+              <StabilityPanel stability={state.stabilityHistory || []} /> {/* ← FIX #3 */}
             </div>
 
             <div style={{ flex: 1, overflowY: "auto", padding: 10 }}>
@@ -122,14 +122,11 @@ export default function App() {
               minWidth: 0,
             }}
           >
-             <GraphPanel
-              graph={state.graph}
-              isRunning={state.status === 'running'}
-              runComplete={state.runComplete}
+            <GraphPanel
+              data={state.graph}
+              phaseOverride={phase}   // ← FIX #2
             />
-          </div>   {/* ← this closing div was missing */}
-
-          {/* RIGHT COLUMN */}
+          </div>
 
           {/* RIGHT COLUMN */}
           <div
