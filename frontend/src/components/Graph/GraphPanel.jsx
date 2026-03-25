@@ -49,30 +49,34 @@ export default function GraphPanel({ graph, isRunning, runComplete }) {
   useGraph(svgRef, graph);
 
   useEffect(() => {
-    // Detect run START edge
-    if (isRunning && !prevRunning.current) {
-      stateRef.current   = "thinking";
-      thinkFrame.current = 0;
-      setShowSynth(false);
-    }
-    prevRunning.current = isRunning;
+    const wasRunning  = prevRunning.current;
+    const wasComplete = prevComplete.current;
 
-    // Detect run COMPLETE edge — runComplete prop from state.runComplete
-    // This only flips true on final_output SSE event
-    if (runComplete && !prevComplete.current) {
-      stateRef.current = "complete";
-      setTimeout(() => setShowSynth(true), 600); // slight delay after graph fades in
-    }
+    prevRunning.current  = isRunning;
     prevComplete.current = runComplete;
 
-    // Reset on new query
+    // New run starting — reset everything
+    if (isRunning && !wasRunning) {
+      stateRef.current    = "thinking";
+      thinkFrame.current  = 0;
+      setShowSynth(false);
+    }
+
+    // Run just completed — runComplete flipped true AND isRunning just went false
+    // This only fires when final_output SSE arrives (reducer sets runComplete=true)
+    if (runComplete && !wasComplete) {
+      stateRef.current = "complete";
+      setTimeout(() => setShowSynth(true), 800);
+    }
+
+    // Full reset when back to idle
     if (!isRunning && !runComplete && !hasGraph) {
-      stateRef.current   = "idle";
-      nodesRef.current   = null;
-      ambientRef.current = null;
-      awaitAlpha.current = 1;
-      resAlpha.current   = 0;
-      thinkFrame.current = 0;
+      stateRef.current    = "idle";
+      nodesRef.current    = null;
+      ambientRef.current  = null;
+      awaitAlpha.current  = 1;
+      resAlpha.current    = 0;
+      thinkFrame.current  = 0;
       globalAngle.current = 0;
       setShowSynth(false);
     }

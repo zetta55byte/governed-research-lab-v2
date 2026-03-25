@@ -10,12 +10,15 @@ export function grlReducer(state, event) {
       return { ...state, phase: event.phase };
 
     case 'ADVANCE_PHASE': {
-      // Only advance if run is actually happening
       if (state.status !== 'running') return state;
       const i = PHASE_ORDER.indexOf(state.phase);
-      const next = PHASE_ORDER[Math.min(i + 1, PHASE_ORDER.length - 2)]; // never auto-advance to complete
+      // Never auto-advance to 'complete' — that only comes from final_output
+      const next = PHASE_ORDER[Math.min(i + 1, PHASE_ORDER.length - 2)];
       return { ...state, phase: next };
     }
+
+    case 'SET_ENTROPY':
+      return { ...state, entropy: event.value };
 
     // ── SSE events ────────────────────────────────────────────────────────
     case 'agent_update':
@@ -52,7 +55,7 @@ export function grlReducer(state, event) {
       return {
         ...state,
         graph: { nodes: event.nodes || [], links: event.links || [] },
-        // NO phase change here — phase driven by SSE lifecycle only
+        // No phase change here — handled in useSSE
       };
 
     case 'delta_committed':
@@ -65,6 +68,7 @@ export function grlReducer(state, event) {
       return {
         ...state,
         currentStability: event.score,
+        entropy: event.entropy ?? state.entropy ?? 0.5,
         stabilityHistory: [
           ...state.stabilityHistory,
           { score: event.score, components: event.components || {}, delta_id: event.delta_id },
@@ -72,7 +76,6 @@ export function grlReducer(state, event) {
       };
 
     case 'final_output':
-      // Phase set to 'complete' by useSSE above, not here
       return {
         ...state,
         finalBrief: event.brief,
@@ -83,6 +86,7 @@ export function grlReducer(state, event) {
         currentStability: event.final_stability || state.currentStability,
         runComplete: true,
         status: 'complete',
+        // phase set to 'complete' by useSSE, not here
       };
 
     case 'error':
@@ -94,7 +98,13 @@ export function grlReducer(state, event) {
 
     // ── UI actions ────────────────────────────────────────────────────────
     case 'SET_SESSION':
-      return { ...state, sessionId: event.sessionId, status: 'running' };
+      return {
+        ...state,
+        sessionId: event.sessionId,
+        status: 'running',
+        runComplete: false,   // reset for new run
+        phase: 'burst',       // new run starts at burst
+      };
 
     case 'SET_QUERY':
       return { ...state, query: event.query };
@@ -111,6 +121,8 @@ export function grlReducer(state, event) {
         query: state.query,
         profile: state.profile,
         runtime: state.runtime,
+        runComplete: false,
+        phase: 'idle',
       };
 
     default:

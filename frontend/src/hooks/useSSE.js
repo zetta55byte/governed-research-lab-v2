@@ -17,19 +17,25 @@ export function useSSE(sessionId, dispatch) {
       try {
         const msg = JSON.parse(e.data);
 
-        // ── Phase machine driven by RUN LIFECYCLE, not graph deltas ──
+        // ── Phase machine — driven by RUN LIFECYCLE only ──────────────────
+        // First agent running → burst phase
         if (msg.type === 'agent_update' && msg.status === 'running') {
-          // First agent starts running → burst phase
           dispatch({ type: 'SET_PHASE', phase: 'burst' });
         }
 
+        // Graph updating → advance phase (burst→drift→converge)
+        // but never to complete — that's final_output only
         if (msg.type === 'graph_update') {
-          // Graph is updating → advance toward converge
           dispatch({ type: 'ADVANCE_PHASE' });
         }
 
+        // Stability update → extract entropy if present
+        if (msg.type === 'stability_update' && msg.entropy != null) {
+          dispatch({ type: 'SET_ENTROPY', value: msg.entropy });
+        }
+
+        // Run actually finished → complete phase
         if (msg.type === 'final_output') {
-          // Run actually finished → complete
           dispatch({ type: 'SET_PHASE', phase: 'complete' });
         }
 
@@ -37,7 +43,7 @@ export function useSSE(sessionId, dispatch) {
           es.close();
         }
 
-        // Always dispatch the raw event for the reducer
+        // Always dispatch raw event for reducer
         dispatch(msg);
 
       } catch (err) {
