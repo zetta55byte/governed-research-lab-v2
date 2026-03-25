@@ -65,12 +65,11 @@ export default function StabilityPanel({ stability }) {
         style={{
           marginTop: 6,
           fontSize: 10,
-          color: "#64748b",
+        color: "#64748b",
           fontFamily: "Space Mono",
         }}
       >
-        (typeof safe[safe.length-1] === "number" ? safe[safe.length-1] : (safe[safe.length-1]?.score ?? 0)).toFixed(2)
-      </div>
-    </div>
-  );
+        Latest: {safe.length ? (typeof safe[safe.length-1] === "number" ? safe[safe.length-1] : (safe[safe.length-1]?.score ?? 0)).toFixed(2) : "—"}
+      </div>  
+      );
 }
