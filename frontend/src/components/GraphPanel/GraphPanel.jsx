@@ -5,7 +5,7 @@ import GraphOverlay from "./GraphOverlay"
 import GraphD3View from "./GraphD3View"
 import AttractorRidge from "./AttractorRidge"
 import NarrativeOverlay from "./NarrativeOverlay"
-import { useGraphStory } from "./useGraphStory"
+import useGraphStory from "./useGraphStory"
 import "./graphPanel.css"
 
 export default function GraphPanel({ data, phaseOverride }) {
