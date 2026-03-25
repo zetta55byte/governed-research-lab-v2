@@ -103,7 +103,7 @@ export default function App() {
             </div>
 
             <div style={{ padding: 10, borderBottom: "1px solid #0f172a" }}>
-              <StabilityPanel stability={state.stabilityHistory || []} />
+              <StabilityPanel history={state.stabilityHistory || []} current={state.currentStability} />
             </div>
 
             <div style={{ flex: 1, overflowY: "auto", padding: 10 }}>
@@ -119,11 +119,14 @@ export default function App() {
               padding: 12,
             }}
           >
-<GraphPanel
-  graph={state.graph}
-  isRunning={state.status === 'running'}
-  runComplete={state.runComplete}
-/>
+             <GraphPanel
+              graph={state.graph}
+              isRunning={state.status === 'running'}
+              runComplete={state.runComplete}
+            />
+          </div>   {/* ← this closing div was missing */}
+
+          {/* RIGHT COLUMN */}
 
           {/* RIGHT COLUMN */}
           <div
