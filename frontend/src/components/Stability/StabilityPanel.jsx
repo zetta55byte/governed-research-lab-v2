@@ -7,69 +7,38 @@ export default function StabilityPanel({ stability }) {
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas || safe.length < 2) return;
-
     const ctx = canvas.getContext("2d");
     const w = canvas.width;
     const h = canvas.height;
-
     ctx.clearRect(0, 0, w, h);
     ctx.strokeStyle = "#3b82f6";
     ctx.lineWidth = 2;
     ctx.beginPath();
-
     safe.forEach((v, i) => {
-      const x = (i / (safe.length - 1)) * w;
       const score = typeof v === "number" ? v : (v?.score ?? 0);
+      const x = (i / (safe.length - 1)) * w;
       const y = h - score * h;
       i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
     });
-
     ctx.stroke();
   }, [safe]);
 
   return (
-    <div
-      style={{
-        padding: "10px 12px",
-        borderBottom: "1px solid #1e2a3a",
-      }}
-    >
-      <div
-        style={{
-          fontSize: 9,
-          color: "#334155",
-          letterSpacing: 2,
-          textTransform: "uppercase",
-          fontFamily: "Syne",
-          fontWeight: 700,
-          marginBottom: 6,
-        }}
-      >
+    <div style={{ padding: "10px 12px", borderBottom: "1px solid #1e2a3a" }}>
+      <div style={{
+        fontSize: 9, color: "#334155", letterSpacing: 2,
+        textTransform: "uppercase", fontFamily: "Syne",
+        fontWeight: 700, marginBottom: 6,
+      }}>
         Stability
       </div>
-
-      <canvas
-        ref={canvasRef}
-        width={260}
-        height={60}
-        style={{
-          width: "100%",
-          height: 60,
-          background: "#131929",
-          borderRadius: 6,
-          border: "1px solid #1e2a3a",
-        }}
-      />
-
-      <div
-        style={{
-          marginTop: 6,
-          fontSize: 10,
-        color: "#64748b",
-          fontFamily: "Space Mono",
-        }}
-      >
+      <canvas ref={canvasRef} width={260} height={60} style={{
+        width: "100%", height: 60, background: "#131929",
+        borderRadius: 6, border: "1px solid #1e2a3a",
+      }} />
+      <div style={{ marginTop: 6, fontSize: 10, color: "#64748b", fontFamily: "Space Mono" }}>
         Latest: {safe.length ? (typeof safe[safe.length-1] === "number" ? safe[safe.length-1] : (safe[safe.length-1]?.score ?? 0)).toFixed(2) : "—"}
-      </div>  
-      );
+      </div>
+    </div>
+  );
 }
