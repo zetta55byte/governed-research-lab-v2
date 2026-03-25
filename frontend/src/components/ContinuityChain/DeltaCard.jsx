@@ -43,7 +43,7 @@ export function DeltaCard({ delta, selected, onSelect }) {
       </div>
       {delta.stability_after != null && (
         <div style={{ fontSize: 9, color: '#64748b', marginTop: 4 }}>
-          S(t): {delta.stability_after.toFixed(3)}
+          S(t): {delta.stability_after != null ? delta.stability_after.toFixed(3) : "—"}
         </div>
       )}
       {isContested && (
