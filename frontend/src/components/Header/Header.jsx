@@ -19,7 +19,7 @@ export default function Header({ stability, runtime, status }) {
         padding: '3px 10px', borderRadius: 20, border: '1px solid #1e2a3a', fontSize: 11 }}>
         <div style={{ width: 6, height: 6, borderRadius: '50%', background: color,
           animation: 'pulse 2s infinite' }} />
-        S(t) = {stability.toFixed(3)}
+        S(t) = {typeof stability === "number" ? stability.toFixed(3) : "—"}
       </div>
       {status === 'complete' && (
         <div style={{ fontSize: 11, color: '#10b981', padding: '3px 10px',
