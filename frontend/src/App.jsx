@@ -85,6 +85,7 @@ export default function App() {
             display: "grid",
             gridTemplateColumns: "260px 1fr 320px",
             minHeight: 0,
+            minWidth: 0,        // ← FIX: prevents center column overflow
             width: "100%",
             overflow: "hidden",
             borderTop: "1px solid #0f172a",
@@ -123,8 +124,8 @@ export default function App() {
             }}
           >
             <GraphPanel
-              data={state.graph}
-              phaseOverride={phase}   // ← FIX #2
+              data={state.graph}          // ← FIX #2
+              phaseOverride={phase}       // ← FIX #2
             />
           </div>
 
