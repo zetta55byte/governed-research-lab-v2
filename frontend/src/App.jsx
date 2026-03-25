@@ -186,16 +186,9 @@ export default function App() {
   {rightTab === "constitution" && (
     <ConstitutionBuilder state={state} dispatch={dispatch} />
   )}
-</div>
-
-              {rightTab === "constitution" && (
-                <ConstitutionBuilder state={state} dispatch={dispatch} />
-              )}
-            </div>
-          </div>
-        </div>
-
-           {/* FOOTER / PIPELINE */}
+</div>          
+            
+    {/* FOOTER / PIPELINE */}
         <PipelineAnimation agents={state.agents} status={state.status} />
       </div>   {/* ← closes outer grid */}
     </>
