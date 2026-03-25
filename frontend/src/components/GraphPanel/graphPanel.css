@@ -1,3 +1,43 @@
+.continuity-chain {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 4px 0;
+}
+
+.chain-item {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  padding: 6px 8px;
+  background: #0f172a;
+  border-radius: 6px;
+  border: 1px solid #1e2a3a;
+  font-family: "Space Mono", monospace;
+  font-size: 10px;
+}
+
+.chain-index {
+  color: #334155;
+  font-size: 9px;
+  min-width: 14px;
+  padding-top: 1px;
+}
+
+.chain-title {
+  color: #64748b;
+  font-size: 9px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin-bottom: 2px;
+}
+
+.chain-desc {
+  color: #94a3b8;
+  font-size: 10px;
+  line-height: 1.4;
+}
+
 .graph-panel {
   position: relative;
   width: 600px;
