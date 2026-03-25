@@ -16,8 +16,30 @@ export function useSSE(sessionId, dispatch) {
     es.onmessage = (e) => {
       try {
         const msg = JSON.parse(e.data);
+
+        // ── Phase machine driven by RUN LIFECYCLE, not graph deltas ──
+        if (msg.type === 'agent_update' && msg.status === 'running') {
+          // First agent starts running → burst phase
+          dispatch({ type: 'SET_PHASE', phase: 'burst' });
+        }
+
+        if (msg.type === 'graph_update') {
+          // Graph is updating → advance toward converge
+          dispatch({ type: 'ADVANCE_PHASE' });
+        }
+
+        if (msg.type === 'final_output') {
+          // Run actually finished → complete
+          dispatch({ type: 'SET_PHASE', phase: 'complete' });
+        }
+
+        if (msg.type === 'stream_end') {
+          es.close();
+        }
+
+        // Always dispatch the raw event for the reducer
         dispatch(msg);
-        if (msg.type === 'stream_end') es.close();
+
       } catch (err) {
         console.error('SSE parse error:', err);
       }

@@ -1,21 +1,21 @@
 import { initialState } from './initialState';
 
-// Phase state machine transitions
-const machine = {
-  idle:     { on: { START: 'burst' } },
-  burst:    { on: { DRIFT: 'drift' } },
-  drift:    { on: { CONVERGE: 'converge' } },
-  converge: { on: { COMPLETE: 'complete' } },
-  complete: { on: { RESET: 'idle' } },
-};
-
-export function grlMachineReducer(state, action) {
-  const next = machine[state.phase]?.on?.[action.type];
-  return next ? { ...state, phase: next } : state;
-}
+const PHASE_ORDER = ['idle', 'burst', 'drift', 'converge', 'complete'];
 
 export function grlReducer(state, event) {
   switch (event.type) {
+
+    // ── Phase control ──────────────────────────────────────────────────────
+    case 'SET_PHASE':
+      return { ...state, phase: event.phase };
+
+    case 'ADVANCE_PHASE': {
+      // Only advance if run is actually happening
+      if (state.status !== 'running') return state;
+      const i = PHASE_ORDER.indexOf(state.phase);
+      const next = PHASE_ORDER[Math.min(i + 1, PHASE_ORDER.length - 2)]; // never auto-advance to complete
+      return { ...state, phase: next };
+    }
 
     // ── SSE events ────────────────────────────────────────────────────────
     case 'agent_update':
@@ -52,6 +52,7 @@ export function grlReducer(state, event) {
       return {
         ...state,
         graph: { nodes: event.nodes || [], links: event.links || [] },
+        // NO phase change here — phase driven by SSE lifecycle only
       };
 
     case 'delta_committed':
@@ -71,6 +72,7 @@ export function grlReducer(state, event) {
       };
 
     case 'final_output':
+      // Phase set to 'complete' by useSSE above, not here
       return {
         ...state,
         finalBrief: event.brief,
@@ -102,9 +104,6 @@ export function grlReducer(state, event) {
 
     case 'SET_RUNTIME':
       return { ...state, runtime: event.runtime };
-
-    case 'SET_PHASE':
-      return { ...state, phase: event.phase };
 
     case 'RESET':
       return {

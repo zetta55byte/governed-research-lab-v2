@@ -1,6 +1,11 @@
 import React, { useRef, useEffect, useState } from "react";
 import { useGraph } from "../../hooks/useGraph";
 
+// CHAOS → ORDER story
+// Idle: nodes at independent orbits (chaos)
+// Thinking: nodes converge one by one (governance pulling them)
+// Complete: React overlay fires — ONLY on final_output, not graph delta
+
 const RING_NODES = [
   { label: "Human",        color: "#f59e0b", size: 10, idleR: 0.78, idlePhase: Math.PI*0.1,  idleSpd: 0.00025, convDelay: 0   },
   { label: "Researcher #1",color: "#10b981", size: 9,  idleR: 0.72, idlePhase: Math.PI*0.55, idleSpd: 0.0003,  convDelay: 50  },
@@ -10,9 +15,9 @@ const RING_NODES = [
   { label: "Planner",      color: "#3b82f6", size: 10, idleR: 0.30, idlePhase: Math.PI*1.55, idleSpd: 0.0005,  convDelay: 250 },
 ];
 
-const CIRCLE_R   = 0.38;
-const ORBIT_SPD  = 0.0005;
-const CENTER     = { label: "Synthesizer", color: "#a855f7", size: 14 };
+const CIRCLE_R  = 0.38;
+const ORBIT_SPD = 0.0005;
+const CENTER    = { label: "Synthesizer", color: "#a855f7", size: 14 };
 
 const AMBIENT_WORDS = [
   "M1","M2","M3","M4","δ","S(t)","α","β","γ","λ",
@@ -21,7 +26,7 @@ const AMBIENT_WORDS = [
   "constitutional","delta","chain","ridge","critic","synthesizer","Δ","∞",
 ];
 
-export default function GraphPanel({ graph, isRunning }) {
+export default function GraphPanel({ graph, isRunning, runComplete }) {
   const containerRef = useRef(null);
   const svgRef       = useRef(null);
   const canvasRef    = useRef(null);
@@ -34,46 +39,44 @@ export default function GraphPanel({ graph, isRunning }) {
   const awaitAlpha   = useRef(1);
   const resAlpha     = useRef(0);
   const textPhase    = useRef(0);
+  const prevRunning  = useRef(false);
+  const prevComplete = useRef(false);
 
-  // SYNTHESIS COMPLETE shown as React overlay (canvas fades out when graph arrives)
+  // SYNTHESIS COMPLETE — React overlay, only shows when runComplete flips true
   const [showSynth, setShowSynth] = useState(false);
-  const [synthFade, setSynthFade] = useState(0);
 
   const hasGraph = !!(graph?.nodes?.length);
   useGraph(svgRef, graph);
 
   useEffect(() => {
-    if (isRunning && stateRef.current === "idle") {
-      stateRef.current = "thinking";
+    // Detect run START edge
+    if (isRunning && !prevRunning.current) {
+      stateRef.current   = "thinking";
       thinkFrame.current = 0;
       setShowSynth(false);
-      setSynthFade(0);
     }
-    if (!isRunning && !hasGraph) {
-      stateRef.current = "idle";
-      nodesRef.current = null;
+    prevRunning.current = isRunning;
+
+    // Detect run COMPLETE edge — runComplete prop from state.runComplete
+    // This only flips true on final_output SSE event
+    if (runComplete && !prevComplete.current) {
+      stateRef.current = "complete";
+      setTimeout(() => setShowSynth(true), 600); // slight delay after graph fades in
+    }
+    prevComplete.current = runComplete;
+
+    // Reset on new query
+    if (!isRunning && !runComplete && !hasGraph) {
+      stateRef.current   = "idle";
+      nodesRef.current   = null;
       ambientRef.current = null;
       awaitAlpha.current = 1;
       resAlpha.current   = 0;
       thinkFrame.current = 0;
       globalAngle.current = 0;
       setShowSynth(false);
-      setSynthFade(0);
     }
-    if (hasGraph && stateRef.current === "thinking") {
-      stateRef.current = "complete";
-      // Show SYNTHESIS COMPLETE overlay after brief delay
-      setTimeout(() => {
-        setShowSynth(true);
-        let f = 0;
-        const fade = setInterval(() => {
-          f += 0.04;
-          setSynthFade(Math.min(1, f));
-          if (f >= 1) clearInterval(fade);
-        }, 30);
-      }, 400);
-    }
-  }, [isRunning, hasGraph]);
+  }, [isRunning, runComplete, hasGraph]);
 
   useEffect(() => {
     const canvas    = canvasRef.current;
@@ -97,11 +100,15 @@ export default function GraphPanel({ graph, isRunning }) {
       if (!nodesRef.current) {
         nodesRef.current = RING_NODES.map((n, i) => {
           const r = n.idleR * baseR;
-          const circleAngle = (i / RING_NODES.length) * Math.PI * 2;
-          return { ...n, phase: n.idlePhase, currentR: r,
-            x: cx + Math.cos(n.idlePhase)*r,
-            y: cy + Math.sin(n.idlePhase)*r*0.6,
-            circleAngle, converged: 0 };
+          return {
+            ...n,
+            phase: n.idlePhase,
+            currentR: r,
+            x: cx + Math.cos(n.idlePhase) * r,
+            y: cy + Math.sin(n.idlePhase) * r * 0.6,
+            circleAngle: (i / RING_NODES.length) * Math.PI * 2,
+            converged: 0,
+          };
         });
       }
 
@@ -118,6 +125,7 @@ export default function GraphPanel({ graph, isRunning }) {
       ctx.clearRect(0, 0, W, H);
       t++;
       textPhase.current += 0.018;
+
       const state = stateRef.current;
       if (state === "thinking") thinkFrame.current++;
 
@@ -128,8 +136,9 @@ export default function GraphPanel({ graph, isRunning }) {
       } else if (state === "thinking") {
         awaitAlpha.current = Math.max(0, awaitAlpha.current - 0.025);
         resAlpha.current   = Math.min(1, resAlpha.current   + 0.025);
-      } else if (state === "complete") {
-        resAlpha.current = Math.max(0, resAlpha.current - 0.02);
+      } else {
+        resAlpha.current   = Math.max(0, resAlpha.current   - 0.02);
+        awaitAlpha.current = Math.max(0, awaitAlpha.current - 0.02);
       }
 
       // Ambient words
@@ -188,17 +197,17 @@ export default function GraphPanel({ graph, isRunning }) {
 
       globalAngle.current += ORBIT_SPD;
 
-      // Ring nodes — chaos to order
+      // Nodes
       nodesRef.current.forEach((node, i) => {
         let tx, ty;
+
         if (state === "idle") {
           node.phase += node.idleSpd;
           tx = cx + Math.cos(node.phase)*node.currentR;
           ty = cy + Math.sin(node.phase)*node.currentR*0.55;
           node.converged = 0;
         } else if (state === "thinking") {
-          const frames = thinkFrame.current;
-          if (frames > node.convDelay) {
+          if (thinkFrame.current > node.convDelay) {
             node.converged = Math.min(1, node.converged + 0.008);
           }
           node.phase += node.idleSpd*(1 - node.converged*0.8);
@@ -266,21 +275,20 @@ export default function GraphPanel({ graph, isRunning }) {
       }}/>
       <svg ref={svgRef} style={{position:"absolute",inset:0,width:"100%",height:"100%"}}/>
 
-      {/* SYNTHESIS COMPLETE — React overlay, visible even after canvas fades */}
+      {/* SYNTHESIS COMPLETE — only shows after final_output SSE event */}
       {showSynth && (
         <div style={{
           position:"absolute",inset:0,pointerEvents:"none",
           display:"flex",flexDirection:"column",
           alignItems:"center",justifyContent:"center",
-          opacity: synthFade,
-          transition:"opacity 0.5s ease",
-          zIndex: 10,
+          zIndex:10,
+          animation:"synthFadeIn 0.8s ease forwards",
         }}>
           <div style={{
             fontFamily:"'Syne',sans-serif",fontWeight:800,
-            fontSize:"clamp(28px, 4vw, 52px)",
+            fontSize:"clamp(28px,4vw,52px)",
             color:"#a855f7",textAlign:"center",
-            textShadow:"0 0 40px #a855f7, 0 0 80px #a855f755",
+            textShadow:"0 0 40px #a855f7,0 0 80px #a855f755",
             letterSpacing:2,
             animation:"synthPulse 2s ease-in-out infinite",
           }}>
@@ -288,16 +296,13 @@ export default function GraphPanel({ graph, isRunning }) {
           </div>
           <div style={{
             marginTop:12,fontFamily:"'Space Mono',monospace",
-            fontSize:13,color:"#a855f799",letterSpacing:4,
-            textTransform:"uppercase",
+            fontSize:13,color:"#a855f799",letterSpacing:4,textTransform:"uppercase",
           }}>
             governed · audited · stable
           </div>
           <style>{`
-            @keyframes synthPulse {
-              0%,100%{text-shadow:0 0 40px #a855f7,0 0 80px #a855f755}
-              50%{text-shadow:0 0 60px #a855f7,0 0 120px #a855f799,0 0 200px #a855f733}
-            }
+            @keyframes synthFadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+            @keyframes synthPulse { 0%,100%{text-shadow:0 0 40px #a855f7,0 0 80px #a855f755} 50%{text-shadow:0 0 60px #a855f7,0 0 120px #a855f799} }
           `}</style>
         </div>
       )}
