@@ -1,4 +1,4 @@
- import React, { useReducer, useState, useEffect } from "react"
+import React, { useReducer, useState, useEffect } from "react"
 import { grlReducer } from "./state/reducer"
 import { initialState } from "./state/initialState"
 import { useSSE } from "./hooks/useSSE"
@@ -108,7 +108,7 @@ export default function App() {
               <StabilityPanel stability={state.currentStability} />
             </div>
             <div style={{ flex: 1, overflowY: "auto", padding: 10 }}>
-              <MembraneLog logs={state.logs} />
+              <MembraneLog log={state.membraneLog} />
             </div>
           </div>
 
