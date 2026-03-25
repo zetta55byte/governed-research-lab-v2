@@ -23,5 +23,7 @@ export const initialState = {
   agents: {},
 
   // misc
-  runtime: null,
-}
+  query: "",                 // ⭐ add this
+  profile: "governance",     // ⭐ backend default slug
+  runtime: "claude",         // ⭐ backend default slug
+};
