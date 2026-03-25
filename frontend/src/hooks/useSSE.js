@@ -3,83 +3,59 @@ import { useEffect } from "react"
 export function useSSE(sessionId, dispatch) {
   useEffect(() => {
     if (!sessionId) return
-
     const backend = import.meta.env.VITE_GRL_BACKEND_URL
     const url = `${backend}/stream/${sessionId}`
-
     const es = new EventSource(url)
 
     es.onmessage = (event) => {
       if (!event.data) return
-
       let msg
-      try {
-        msg = JSON.parse(event.data)
-      } catch {
-        return
-      }
+      try { msg = JSON.parse(event.data) } catch { return }
 
-      // STATUS → PHASE
-      if (msg.type === "status") {
-        dispatch({ type: "SET_STATUS", status: msg.status })
+      switch (msg.type) {
 
-        if (msg.status === "running") {
-          dispatch({ type: "SET_PHASE", phase: "burst" })
-        }
+        case "agent_update":
+          dispatch({ type: "AGENT_UPDATE", agentId: msg.agent_id, agentName: msg.agent_name, status: msg.status, message: msg.message })
+          break
 
-        if (msg.status === "complete") {
-          dispatch({ type: "SET_PHASE", phase: "complete" })
-        }
-      }
+        case "membrane_check":
+          dispatch({ type: "ADD_MEMBRANE_LOG", entry: { agentId: msg.agent_id, stage: msg.stage, membrane: msg.membrane, result: msg.result, reason: msg.reason, deltaId: msg.delta_id, timestamp: msg.timestamp } })
+          break
 
-      // GRAPH → DATA + PHASE PROGRESSION
-      if (msg.type === "graph") {
-        dispatch({ type: "SET_GRAPH", graph: msg.graph })
-        dispatch({ type: "ADVANCE_PHASE" })
-      }
+        case "graph_update":
+          dispatch({ type: "SET_GRAPH", graph: { nodes: msg.nodes, links: msg.links } })
+          break
 
-      // ENTROPY
-      if (msg.type === "entropy") {
-        dispatch({ type: "SET_ENTROPY", value: msg.value })
-      }
+        case "delta_committed":
+          dispatch({ type: "ADD_DELTA", delta: msg.delta })
+          dispatch({ type: "ADD_CHAIN_ENTRY", entry: msg.delta })
+          break
 
-      // DELTAS
-      if (msg.type === "delta") {
-        dispatch({ type: "ADD_DELTA", delta: msg.delta })
-      }
+        case "stability_update":
+          dispatch({ type: "SET_STABILITY", score: msg.score, components: msg.components })
+          break
 
-      // LOGS
-      if (msg.type === "log") {
-        dispatch({ type: "ADD_LOG", log: msg.log })
-      }
+        case "final_output":
+          dispatch({ type: "SET_FINAL_OUTPUT", brief: msg.brief, continuityChain: msg.continuity_chain, stabilityCurve: msg.stability_curve, finalStability: msg.final_stability })
+          dispatch({ type: "SET_STATUS", status: "complete" })
+          break
 
-      // AUDIT
-      if (msg.type === "audit") {
-        dispatch({ type: "ADD_AUDIT", entry: msg.entry })
-      }
+        case "stream_end":
+          dispatch({ type: "SET_STATUS", status: "complete" })
+          es.close()
+          break
 
-      // STABILITY
-      if (msg.type === "stability") {
-        dispatch({ type: "SET_STABILITY", value: msg.value })
-      }
+        case "error":
+          dispatch({ type: "SET_STATUS", status: "error" })
+          es.close()
+          break
 
-      // RUNTIME
-      if (msg.type === "runtime") {
-        dispatch({ type: "SET_RUNTIME", value: msg.value })
-      }
-
-      // AGENTS
-      if (msg.type === "agents") {
-        dispatch({ type: "SET_AGENTS", agents: msg.agents })
+        default:
+          break
       }
     }
 
-    es.onerror = () => {
-      es.close()
-    }
-
-    return () => {
-      es.close()
-    }
+    es.onerror = () => { es.close() }
+    return () => { es.close() }
   }, [sessionId, dispatch])
 }
