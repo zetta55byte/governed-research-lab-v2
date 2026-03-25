@@ -31,21 +31,29 @@ export default function ControlPanel({ state, dispatch }) {
   const isRunning = state.status === 'running';
   const safeQuery = state.query?.trim();
 
-  const startResearch = async () => {
-    if (!safeQuery || isRunning) return;
+const startResearch = async () => {
+  if (!safeQuery || isRunning) return;
 
-    dispatch({ type: 'RESET' });
+  dispatch({ type: 'RESET' });
 
-    try {
-      const res = await fetch(`${BACKEND}/run`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          query: state.query,
-          profile: state.profile,
-          runtime: state.runtime,
-        }),
-      });
+  // ⭐ Option C — enforce valid profile slugs
+  const validProfiles = ["ai_safety", "evals", "governance", "planning", "custom"];
+  const profile = validProfiles.includes(state.profile)
+    ? state.profile
+    : "governance";
+
+  const payload = {
+    query: state.query,
+    profile,
+    runtime: state.runtime || "claude",
+  };
+
+  try {
+    const res = await fetch(`${BACKEND}/run`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
 
       const data = await res.json();
       dispatch({ type: 'SET_SESSION', sessionId: data.session_id });
