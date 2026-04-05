@@ -30,6 +30,42 @@ The second generation of the Constitutional OS flagship reference implementation
 
 
 
+
+## Curvature-Aware Governance (hcderiv integration)
+
+GRL v2 uses [hcderiv](https://github.com/zetta55byte/hypercomplex) to compute
+**exact Hessians** of the Lyapunov potential V(t) at each proposed state update.
+This gates delta commits based on local curvature, not just scalar value.
+
+```python
+from core.curvature import CurvatureEngine
+
+engine = CurvatureEngine(alpha=0.4, beta=0.3, gamma=0.3, nonlinear=True)
+
+# After each proposed delta:
+report = engine.analyse([c, u, d])   # exact 3x3 Hessian via hcderiv
+if not report.is_safe:
+    reject_delta(f"max eigenvalue {report.max_eigenvalue:.3f} exceeds threshold")
+```
+
+**Why exact Hessians?**
+- The scalar V(t) tells you *where* the system is on the stability surface.
+- The Hessian tells you *how fast* curvature is changing — the second-order
+  geometry that governs whether a proposed step moves toward or away from a
+  stable attractor.
+- Diagonal approximations (finite differences) miss off-diagonal coupling
+  between contradiction, uncertainty, and drift.
+
+**Install:**
+```bash
+pip install hcderiv           # NumPy backend
+pip install "hcderiv[jax]"    # JAX/XLA backend
+```
+
+See [`backend/examples/curvature_governed_agent.py`](backend/examples/curvature_governed_agent.py)
+for a full demo with 8 agent steps, 3 curvature-based rejections.
+
+
 ## Why v2 exists
 
 
