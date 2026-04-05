@@ -31,6 +31,53 @@ The second generation of the Constitutional OS flagship reference implementation
 
 
 
+## Architecture
+
+```
+┌──────────────────────────────────────────┐
+│                hcderiv                   │
+│  Exact Curvature Engine (NumPy + JAX)    │
+│──────────────────────────────────────────│
+│  • Hypercomplex algebra                  │
+│  • grad / hessian / jacobian APIs        │
+│  • Backend registry (NumPy, JAX)         │
+│  • Machine-precision Hessians            │
+│  • Scientific examples + benchmarks      │
+└──────────────────────────────────────────┘
+                    │
+                    │ exact curvature
+                    ▼
+┌──────────────────────────────────────────┐
+│           constitutional-os              │
+│     Deterministic Governance Runtime     │
+│──────────────────────────────────────────│
+│  • Membranes (M1–M4)                     │
+│  • Invariants + Lyapunov stability       │
+│  • Delta calculus + reversible deltas    │
+│  • Offline, deterministic agent loop     │
+└──────────────────────────────────────────┘
+                    │
+                    │ governance substrate
+                    ▼
+┌──────────────────────────────────────────┐
+│       governed-research-lab-v2           │
+│     Curvature-Governed Agent Layer       │
+│──────────────────────────────────────────│
+│  • CurvatureEngine (3×3 Hessian of V(t)) │
+│  • Eigenvalue-based safety gate          │
+│  • Delta commit filtering                │
+│  • Multi-agent governed research loop    │
+└──────────────────────────────────────────┘
+```
+
+**hcderiv** provides exact curvature via a backend-aware hypercomplex algebra.
+**constitutional-os** consumes curvature as a governance signal inside its
+membrane and invariant system. **governed-research-lab-v2** integrates both
+layers: eigenvalue-based safety gates and delta commit filtering.
+
+*mathematics → governance → agent behavior*
+
+
 ## Curvature-Aware Governance (hcderiv integration)
 
 GRL v2 uses [hcderiv](https://github.com/zetta55byte/hypercomplex) to compute
